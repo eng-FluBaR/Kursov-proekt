@@ -1,0 +1,27 @@
+{
+  "name": "kursov-proekt",
+  "version": "1.0.0",
+  "description": "3D Job Planer app: Next.js + React + Expo",
+  "license": "ISC",
+  "author": "Petar Tonev",
+  "type": "commonjs",
+  "private": true,
+  "workspaces": [
+    "3d-jobs-web",
+    "3d-jobs-mobile",
+    "3d-jobs-share"
+  ],
+  "scripts": {
+    "bootstrap": "npm ci",
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:mobile\"",
+    "dev:web": "npm --workspace 3d-jobs-web run dev -- -p 3001",
+    "dev:mobile": "npm --workspace 3d-jobs-mobile run start",
+    "build:web": "npm --workspace 3d-jobs-web run build",
+    "build:mobile": "npm --workspace 3d-jobs-mobile run build || echo \"No build script for mobile\"",
+    "lint": "npm workspaces run lint"
+  }
+  ,
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
