@@ -1,5 +1,16 @@
 <!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+# App Purpose
+Mobile companion to the time tracker. Users log time on projects and view basic stats from their phone.
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+# Technologies
+next.js + Neon DB + Drizzle ORM + React + Tailwind
+# Architecture Rules
+
+Monorepo: this app lives in /apps/web
+Business logic in /services, consumed by Server Components and API routes
+API routes live in /app/api
+DB schema changes: always via Drizzle migrations (drizzle-kit generate → migrate)
+Use modular desing: split the app into selft-contained components, to avoid complex files with too much code
+# User Interface Guidelines
+ Implement modern UI, responsive desing. use server-rendered components in Next,js.
+ Use server-side rendering, only use client components for browser interaction and forms
