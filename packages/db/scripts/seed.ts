@@ -11,147 +11,158 @@ const sql = neon(process.env.DATABASE_URL || 'postgresql://localhost/3djobs');
 const db = drizzle(sql);
 
 const TASK_TYPE_SEEDS = [
-  '3D Scanning',
-  '3D Printing',
-  '3D Modelling',
-  'Post-processing',
-  'CAD Design',
-  'Rendering',
-  'Client review',
-  'Research',
-  'Admin',
-  'Other',
+  { name: '3D Scanning', icon: 'scan' },
+  { name: '3D Printing', icon: 'printer' },
+  { name: '3D Modelling', icon: 'cube' },
+  { name: 'Post-processing', icon: 'sparkles' },
+  { name: 'CAD Design', icon: 'pen-tool' },
+  { name: 'Rendering', icon: 'image' },
+  { name: 'Client review', icon: 'messages' },
+  { name: 'Research', icon: 'search' },
 ];
+
+const USER_SEEDS = [
+  { email: 'admin@tasktimer.app', password: 'admin123', role: 'admin' as const },
+  { email: 'demo@tasktimer.app', password: 'demo123', role: 'user' as const },
+  { email: 'maker@tasktimer.app', password: 'maker123', role: 'user' as const },
+  { email: 'studio@tasktimer.app', password: 'studio123', role: 'user' as const },
+  { email: 'ops@tasktimer.app', password: 'ops123', role: 'user' as const },
+];
+
+const PROJECT_SEEDS = [
+  { name: 'Demo Production Line', color: '#6366f1', description: 'Default admin project' },
+  { name: 'Architectural Model', color: '#0ea5e9', description: 'House and interior work' },
+  { name: 'Prototype Lab', color: '#14b8a6', description: 'Hardware concepts and prints' },
+  { name: 'Client Review Queue', color: '#f97316', description: 'Feedback and revisions' },
+  { name: 'Research Sprint', color: '#8b5cf6', description: 'Materials and process experiments' },
+];
+
+const FILE_TYPES = ['image', 'model', 'document', 'other'] as const;
+
+function hoursAgo(hours: number) {
+  return new Date(Date.now() - hours * 60 * 60 * 1000);
+}
 
 async function seed() {
   console.log('🌱 Starting database seed...');
 
   try {
-    // Seed task types (skip if exist)
+    console.log('🧹 Clearing existing demo data...');
+    await db.delete(entryFiles);
+    await db.delete(timeEntries);
+    await db.delete(projects);
+    await db.delete(users);
+    await db.delete(taskTypes);
+
     console.log('📝 Seeding task types...');
-    for (const taskTypeName of TASK_TYPE_SEEDS) {
-      const existing = await db
-        .select()
-        .from(taskTypes)
-        .where({ name: taskTypeName })
-        .limit(1);
+    await db.insert(taskTypes).values(TASK_TYPE_SEEDS);
+    const seededTaskTypes = await db.select().from(taskTypes);
 
-      if (existing.length === 0) {
-        await db.insert(taskTypes).values({
-          name: taskTypeName,
-          icon: null,
-        });
-      }
-    }
-    console.log('✓ Task types seeded');
-
-    // Create admin user (skip if exist)
-    console.log('👤 Creating admin user...');
-    const adminEmailCheck = await db
-      .select()
-      .from(users)
-      .where({ email: 'admin@tasktimer.app' })
-      .limit(1);
-
-    let adminUserId: string;
-    if (adminEmailCheck.length === 0) {
-      const hashedAdminPassword = await bcrypt.hash('admin123', 10);
-      const adminUser = await db
+    console.log('👤 Seeding users...');
+    const seededUsers = [];
+    for (const userSeed of USER_SEEDS) {
+      const [user] = await db
         .insert(users)
         .values({
-          email: 'admin@tasktimer.app',
-          passwordHash: hashedAdminPassword,
-          role: 'admin',
+          email: userSeed.email,
+          passwordHash: await bcrypt.hash(userSeed.password, 10),
+          role: userSeed.role,
         })
         .returning();
-      adminUserId = adminUser[0].id;
-    } else {
-      adminUserId = adminEmailCheck[0].id;
+      seededUsers.push(user);
     }
-    console.log('✓ Admin user ready');
 
-    // Create demo user (skip if exist)
-    console.log('👤 Creating demo user...');
-    const demoEmailCheck = await db
-      .select()
-      .from(users)
-      .where({ email: 'demo@tasktimer.app' })
-      .limit(1);
-
-    let demoUserId: string;
-    if (demoEmailCheck.length === 0) {
-      const hashedDemoPassword = await bcrypt.hash('demo123', 10);
-      const demoUser = await db
-        .insert(users)
+    console.log('📋 Seeding projects...');
+    const seededProjects = [];
+    for (let index = 0; index < PROJECT_SEEDS.length; index += 1) {
+      const owner = seededUsers[index % seededUsers.length];
+      const projectSeed = PROJECT_SEEDS[index];
+      const [project] = await db
+        .insert(projects)
         .values({
-          email: 'demo@tasktimer.app',
-          passwordHash: hashedDemoPassword,
-          role: 'user',
+          userId: owner.id,
+          name: projectSeed.name,
+          color: projectSeed.color,
+          description: projectSeed.description,
+          archived: index === PROJECT_SEEDS.length - 1,
         })
         .returning();
-      demoUserId = demoUser[0].id;
-    } else {
-      demoUserId = demoEmailCheck[0].id;
+      seededProjects.push(project);
     }
-    console.log('✓ Demo user ready');
 
-    // Create demo project for admin
-    console.log('📋 Creating demo project...');
-    const existingProject = await db
-      .select()
-      .from(projects)
-      .where({ userId: adminUserId })
-      .limit(1);
+    console.log('⏱️ Seeding time entries...');
+    const timeEntrySeeds = [
+      { user: seededUsers[0], project: seededProjects[0], taskType: seededTaskTypes[0], hours: 2, durationMinutes: 95, note: 'Morning scan prep' },
+      { user: seededUsers[1], project: seededProjects[1], taskType: seededTaskTypes[1], hours: 6, durationMinutes: 120, note: 'Print started successfully' },
+      { user: seededUsers[2], project: seededProjects[2], taskType: seededTaskTypes[2], hours: 10, durationMinutes: null, note: 'Modeling session still running' },
+      { user: seededUsers[3], project: seededProjects[3], taskType: seededTaskTypes[6], hours: 18, durationMinutes: 45, note: 'Client feedback review' },
+      { user: seededUsers[4], project: seededProjects[4], taskType: seededTaskTypes[7], hours: 24, durationMinutes: 75, note: 'Research on resin settings' },
+      { user: seededUsers[0], project: seededProjects[1], taskType: seededTaskTypes[3], hours: 32, durationMinutes: 60, note: 'Post-processing cleanup' },
+      { user: seededUsers[1], project: seededProjects[2], taskType: seededTaskTypes[4], hours: 40, durationMinutes: 110, note: 'CAD redesign pass' },
+      { user: seededUsers[2], project: seededProjects[0], taskType: seededTaskTypes[5], hours: 52, durationMinutes: 50, note: 'Render preview export' },
+    ];
 
-    if (existingProject.length === 0) {
-      await db.insert(projects).values({
-        userId: adminUserId,
-        name: 'Demo Project',
-        color: '#6366f1',
-        description: 'A demo project for testing',
-        archived: false,
-      });
+    const seededTimeEntries = [];
+    for (const seedItem of timeEntrySeeds) {
+      const startedAt = hoursAgo(seedItem.hours);
+      const [timeEntry] = await db
+        .insert(timeEntries)
+        .values({
+          userId: seedItem.user.id,
+          projectId: seedItem.project.id,
+          taskTypeId: seedItem.taskType.id,
+          startedAt,
+          endedAt: seedItem.durationMinutes === null ? null : new Date(startedAt.getTime() + seedItem.durationMinutes * 60000),
+          durationMinutes: seedItem.durationMinutes,
+          note: seedItem.note,
+        })
+        .returning();
+      seededTimeEntries.push(timeEntry);
     }
-    console.log('✓ Demo project created');
 
-    // Get all task types for random selection
-    const allTaskTypes = await db.select().from(taskTypes);
-
-    // Seed 10,000 time entries in batches of 500
-    console.log('⏱️ Seeding 10,000 time entries...');
-    const adminProject = (
-      await db.select().from(projects).where({ userId: adminUserId }).limit(1)
-    )[0];
-
-    const batchSize = 500;
-    const totalEntries = 10000;
-
-    for (let batch = 0; batch < totalEntries / batchSize; batch++) {
-      const entries = [];
-      for (let i = 0; i < batchSize; i++) {
-        const daysAgo = Math.floor(Math.random() * 365);
-        const minutesAgo = Math.floor(Math.random() * 1440);
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - daysAgo);
-        startDate.setHours(Math.floor(Math.random() * 24), Math.floor(Math.random() * 60));
-
-        const duration = Math.floor(Math.random() * 171) + 10; // 10-180 minutes
-        const randomTaskType = allTaskTypes[Math.floor(Math.random() * allTaskTypes.length)];
-
-        entries.push({
-          userId: adminUserId,
-          projectId: adminProject.id,
-          taskTypeId: randomTaskType.id,
-          startedAt: startDate,
-          endedAt: new Date(startDate.getTime() + duration * 60000),
-          durationMinutes: duration,
-          note: \`Test entry ${batch * batchSize + i + 1}\`,
-        });
-      }
-
-      await db.insert(timeEntries).values(entries);
-      console.log(\`  ✓ Batch ${batch + 1}/${Math.ceil(totalEntries / batchSize)} completed\`);
-    }
+    console.log('📎 Seeding entry files...');
+    await db.insert(entryFiles).values([
+      {
+        timeEntryId: seededTimeEntries[0].id,
+        fileType: FILE_TYPES[0],
+        storageKey: 'uploads/scan-prep-001.png',
+        originalName: 'scan-prep-001.png',
+        mimeType: 'image/png',
+        fileSizeBytes: 245678,
+      },
+      {
+        timeEntryId: seededTimeEntries[1].id,
+        fileType: FILE_TYPES[2],
+        storageKey: 'uploads/print-job-001.pdf',
+        originalName: 'print-job-001.pdf',
+        mimeType: 'application/pdf',
+        fileSizeBytes: 145223,
+      },
+      {
+        timeEntryId: seededTimeEntries[2].id,
+        fileType: FILE_TYPES[1],
+        storageKey: 'uploads/model-v2.step',
+        originalName: 'model-v2.step',
+        mimeType: 'application/step',
+        fileSizeBytes: 982341,
+      },
+      {
+        timeEntryId: seededTimeEntries[3].id,
+        fileType: FILE_TYPES[2],
+        storageKey: 'uploads/review-notes.docx',
+        originalName: 'review-notes.docx',
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        fileSizeBytes: 56342,
+      },
+      {
+        timeEntryId: seededTimeEntries[4].id,
+        fileType: FILE_TYPES[3],
+        storageKey: 'uploads/research-log.txt',
+        originalName: 'research-log.txt',
+        mimeType: 'text/plain',
+        fileSizeBytes: 8421,
+      },
+    ]);
 
     console.log('✅ Database seed completed successfully!');
     process.exit(0);
