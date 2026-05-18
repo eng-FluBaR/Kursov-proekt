@@ -7,6 +7,7 @@
   "type": "commonjs",
   "private": true,
   "workspaces": [
+    "packages/db",
     "3d-jobs-web",
     "3d-jobs-mobile",
     "3d-jobs-share"
