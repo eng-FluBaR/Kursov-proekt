@@ -1,0 +1,134 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import type { ReactNode } from 'react';
+
+import { ProjectDot } from './workspace-ui';
+
+const desktopNav = [
+  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/calendar', label: 'Calendar' },
+  { href: '/log', label: 'Log time' },
+  { href: '/projects', label: 'Projects' },
+  { href: '/analytics', label: 'Analytics' },
+  { href: '/admin', label: 'Admin' },
+  { href: '/settings', label: 'Settings' },
+];
+
+const mobileNav = [
+  { href: '/dashboard', label: 'Home' },
+  { href: '/calendar', label: 'Calendar' },
+  { href: '/log', label: 'Log' },
+  { href: '/projects', label: 'Projects' },
+  { href: '/analytics', label: 'Analytics' },
+];
+
+function isActive(pathname: string, href: string) {
+  if (href === '/dashboard') {
+    return pathname === '/dashboard';
+  }
+
+  if (href === '/projects') {
+    return pathname === '/projects' || pathname.startsWith('/projects/');
+  }
+
+  return pathname === href;
+}
+
+export function AppShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+
+  return (
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.12),_transparent_24%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.14),_transparent_20%),linear-gradient(180deg,#08111f_0%,#050b16_100%)]">
+      <div className="mx-auto flex min-h-screen max-w-[1640px]">
+        <aside className="hidden w-80 flex-col border-r border-white/10 bg-slate-950/55 px-6 py-6 backdrop-blur xl:flex">
+          <div className="rounded-[28px] border border-white/10 bg-white/6 p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-400/15 text-cyan-200 ring-1 ring-cyan-300/20">TT</div>
+              <div>
+                <p className="text-sm font-semibold text-white">TaskTimer</p>
+                <p className="text-xs text-slate-400">Operations workspace</p>
+              </div>
+            </div>
+            <div className="mt-5 flex items-center gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
+              <ProjectDot color="#34d399" />
+              <span>Neon sync ready</span>
+            </div>
+          </div>
+
+          <nav className="mt-6 space-y-2">
+            {desktopNav.map((item) => {
+              const active = isActive(pathname, item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center justify-between rounded-2xl px-4 py-3 text-sm transition ${active ? 'bg-cyan-400/15 text-white ring-1 ring-cyan-300/20' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
+                >
+                  <span>{item.label}</span>
+                  {active ? <span className="h-2.5 w-2.5 rounded-full bg-cyan-300" /> : null}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="mt-auto rounded-[28px] border border-white/10 bg-white/6 p-5">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Today</p>
+            <p className="mt-3 text-2xl font-semibold text-white">07h 42m</p>
+            <p className="mt-2 text-sm text-slate-300">92% of target complete</p>
+            <div className="mt-4 h-2 rounded-full bg-white/8">
+              <div className="h-full w-[92%] rounded-full bg-gradient-to-r from-cyan-400 to-amber-300" />
+            </div>
+          </div>
+        </aside>
+
+        <div className="flex min-h-screen flex-1 flex-col">
+          <header className="sticky top-0 z-20 border-b border-white/10 bg-slate-950/70 px-4 py-4 backdrop-blur md:px-6 xl:px-8">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.28em] text-cyan-300/80">TaskTimer</p>
+                <p className="mt-1 text-lg font-semibold text-white">Track jobs, not just hours</p>
+              </div>
+              <div className="hidden items-center gap-3 md:flex">
+                <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">Workspace: 3D Jops planer</span>
+                <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-4 py-2 text-sm text-amber-100">Live mock data</span>
+              </div>
+            </div>
+          </header>
+
+          <main className="flex-1 px-4 py-6 pb-28 md:px-6 xl:px-8 xl:pb-10">{children}</main>
+        </div>
+      </div>
+
+      <nav className="fixed inset-x-3 bottom-3 z-30 rounded-[1.5rem] border border-white/10 bg-slate-950/88 px-2 py-2 shadow-[0_16px_50px_rgba(0,0,0,0.45)] backdrop-blur md:hidden">
+        <div className="grid grid-cols-6 gap-1 text-[11px] font-medium text-slate-300">
+          {mobileNav.map((item) => {
+            const active = isActive(pathname, item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-2 transition ${active ? 'bg-cyan-400/15 text-white' : 'hover:bg-white/5 hover:text-white'}`}
+              >
+                <span className={`h-2.5 w-2.5 rounded-full ${active ? 'bg-cyan-300' : 'bg-white/20'}`} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+
+          <details className="group relative rounded-2xl">
+            <summary className="flex list-none flex-col items-center gap-1 rounded-2xl px-2 py-2 text-slate-300 transition hover:bg-white/5 hover:text-white">
+              <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
+              <span>More</span>
+            </summary>
+            <div className="absolute bottom-14 right-0 w-44 rounded-2xl border border-white/10 bg-slate-950 p-2 shadow-xl">
+              <Link href="/admin" className="block rounded-xl px-3 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">Admin</Link>
+              <Link href="/settings" className="block rounded-xl px-3 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">Settings</Link>
+            </div>
+          </details>
+        </div>
+      </nav>
+    </div>
+  );
+}
