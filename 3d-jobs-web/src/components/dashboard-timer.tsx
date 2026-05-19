@@ -8,6 +8,27 @@ type Option = {
   color: string;
 };
 
+type Job = {
+  id: string;
+  projectId: string;
+  projectName: string;
+  taskTypeName: string | null;
+  title: string;
+  status: string;
+};
+
+type TimeEntry = {
+  id: string;
+  projectId: string;
+  projectName: string;
+  jobId: string | null;
+  taskTypeId: string | null;
+  taskTypeName: string | null;
+  startedAt: string;
+  durationMinutes: number | null;
+  note: string | null;
+};
+
 function formatTime(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -16,11 +37,48 @@ function formatTime(totalSeconds: number) {
 }
 
 export function DashboardTimer({ projects, taskTypes }: { projects: Option[]; taskTypes: Option[] }) {
-  const [running, setRunning] = useState(true);
-  const [elapsed, setElapsed] = useState(7 * 3600 + 42 * 60);
-  const [projectId, setProjectId] = useState(projects[0]?.id ?? '');
-  const [taskTypeId, setTaskTypeId] = useState(taskTypes[0]?.id ?? '');
+  const [running, setRunning] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [activeJobs, setActiveJobs] = useState<Job[]>([]);
+  const [selectedJobId, setSelectedJobId] = useState('');
+  const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
+  // Fetch active timer and available jobs on mount
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        // Fetch active jobs
+        const jobsResponse = await fetch('/api/jobs?status=active');
+        const jobsData = (await jobsResponse.json()) as { jobs: Job[] };
+        setActiveJobs(jobsData.jobs || []);
+        if (jobsData.jobs && jobsData.jobs.length > 0) {
+          setSelectedJobId(jobsData.jobs[0].id);
+        }
+
+        // Fetch active timer
+        const timerResponse = await fetch('/api/time-entries/active');
+        const timerData = (await timerResponse.json()) as { entry: TimeEntry | null };
+        if (timerData.entry) {
+          setActiveEntry(timerData.entry);
+          setSelectedJobId(timerData.entry.jobId || '');
+          setRunning(true);
+          // Calculate elapsed time since started
+          const startTime = new Date(timerData.entry.startedAt).getTime();
+          const now = Date.now();
+          setElapsed(Math.floor((now - startTime) / 1000));
+        }
+      } catch (err) {
+        console.error('Failed to fetch data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  // Handle timer tick
   useEffect(() => {
     if (!running) {
       return;
@@ -33,8 +91,93 @@ export function DashboardTimer({ projects, taskTypes }: { projects: Option[]; ta
     return () => window.clearInterval(interval);
   }, [running]);
 
-  const selectedProject = projects.find((project) => project.id === projectId) ?? projects[0];
-  const selectedTaskType = taskTypes.find((taskType) => taskType.id === taskTypeId) ?? taskTypes[0];
+  async function handleStartTimer() {
+    setError('');
+    if (!selectedJobId) {
+      setError('Please select a job first');
+      return;
+    }
+
+    try {
+      // Find selected job to get project details
+      const selectedJob = activeJobs.find((j) => j.id === selectedJobId);
+      if (!selectedJob) {
+        setError('Job not found');
+        return;
+      }
+
+      // If there's an active entry, stop it first
+      if (activeEntry) {
+        await fetch(`/api/time-entries/${activeEntry.id}/stop`, {
+          method: 'PATCH',
+        });
+      }
+
+      // Create new entry with jobId
+      const response = await fetch('/api/time-entries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: selectedJob.projectId,
+          jobId: selectedJobId,
+          startedAt: new Date().toISOString(),
+        }),
+      });
+
+      const data = (await response.json()) as { entry?: TimeEntry; error?: string };
+      if (!response.ok) {
+        setError(data.error ?? 'Failed to start timer');
+        return;
+      }
+
+      setActiveEntry(data.entry ?? null);
+      setElapsed(0);
+      setRunning(true);
+    } catch (err) {
+      setError('Error starting timer');
+      console.error(err);
+    }
+  }
+
+  async function handleStopTimer() {
+    setError('');
+    if (!activeEntry) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/time-entries/${activeEntry.id}/stop`, {
+        method: 'PATCH',
+      });
+
+      const data = (await response.json()) as { entry?: TimeEntry; error?: string };
+      if (!response.ok) {
+        setError(data.error ?? 'Failed to stop timer');
+        return;
+      }
+
+      setActiveEntry(null);
+      setElapsed(0);
+      setRunning(false);
+    } catch (err) {
+      setError('Error stopping timer');
+      console.error(err);
+    }
+  }
+
+  const selectedJob = activeJobs.find((j) => j.id === selectedJobId);
+
+  if (isLoading) {
+    return <div className="text-slate-300">Loading...</div>;
+  }
+
+  if (activeJobs.length === 0) {
+    return (
+      <div className="rounded-3xl border border-white/10 bg-slate-950/60 p-6 text-center">
+        <p className="text-slate-400">No active jobs yet. Create a job first to start tracking time.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1.3fr_0.9fr]">
@@ -43,43 +186,34 @@ export function DashboardTimer({ projects, taskTypes }: { projects: Option[]; ta
           <div>
             <p className="text-xs uppercase tracking-[0.26em] text-slate-400">Active timer</p>
             <h3 className="mt-2 text-4xl font-semibold text-white tabular-nums">{formatTime(elapsed)}</h3>
-            <p className="mt-2 text-sm text-slate-300">{running ? 'Counting up in real time' : 'Timer paused'}</p>
+            <p className="mt-2 text-sm text-slate-300">{running ? 'Counting up in real time' : 'Timer idle'}</p>
           </div>
           <button
             type="button"
-            onClick={() => setRunning((current) => !current)}
-            className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${running ? 'bg-rose-400 text-slate-950 hover:bg-rose-300' : 'bg-emerald-400 text-slate-950 hover:bg-emerald-300'}`}
+            onClick={running ? handleStopTimer : handleStartTimer}
+            disabled={isLoading}
+            className={`rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:opacity-50 ${
+              running ? 'bg-rose-400 text-slate-950 hover:bg-rose-300' : 'bg-emerald-400 text-slate-950 hover:bg-emerald-300'
+            }`}
           >
             {running ? 'Stop timer' : 'Start timer'}
           </button>
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <label className="space-y-2">
-            <span className="text-xs font-medium uppercase tracking-[0.22em] text-slate-400">Project</span>
-            <select
-              value={projectId}
-              onChange={(event) => setProjectId(event.target.value)}
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none ring-0 transition focus:border-cyan-300/40"
-            >
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.label}
-                </option>
-              ))}
-            </select>
-          </label>
+        {error && <p className="mt-4 text-sm text-rose-400">{error}</p>}
 
+        <div className="mt-6">
           <label className="space-y-2">
-            <span className="text-xs font-medium uppercase tracking-[0.22em] text-slate-400">Task type</span>
+            <span className="text-xs font-medium uppercase tracking-[0.22em] text-slate-400">Select Job</span>
             <select
-              value={taskTypeId}
-              onChange={(event) => setTaskTypeId(event.target.value)}
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none ring-0 transition focus:border-cyan-300/40"
+              value={selectedJobId}
+              onChange={(e) => setSelectedJobId(e.target.value)}
+              disabled={running}
+              className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white outline-none ring-0 transition focus:border-cyan-300/40 focus:ring-1 focus:ring-cyan-300/40 disabled:opacity-50 cursor-pointer"
             >
-              {taskTypes.map((taskType) => (
-                <option key={taskType.id} value={taskType.id}>
-                  {taskType.label}
+              {activeJobs.map((job) => (
+                <option key={job.id} value={job.id}>
+                  {job.title} • {job.projectName}
                 </option>
               ))}
             </select>
@@ -87,17 +221,30 @@ export function DashboardTimer({ projects, taskTypes }: { projects: Option[]; ta
         </div>
 
         <div className="mt-6 flex flex-wrap gap-3">
-          <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200">{selectedProject?.label}</span>
-          <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200">{selectedTaskType?.label}</span>
-          <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-sm text-emerald-100">{running ? 'Timer live' : 'Manual mode'}</span>
+          {selectedJob && (
+            <>
+              <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200">{selectedJob.title}</span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200">{selectedJob.projectName}</span>
+              {selectedJob.taskTypeName && <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200">{selectedJob.taskTypeName}</span>}
+            </>
+          )}
+          <span className={`rounded-full px-4 py-2 text-sm ${running ? 'border border-emerald-400/20 bg-emerald-400/10 text-emerald-100' : 'border border-slate-400/20 bg-slate-400/10 text-slate-300'}`}>
+            {running ? 'Timer live' : 'Idle'}
+          </span>
         </div>
       </div>
 
       <div className="grid gap-4 rounded-3xl border border-white/10 bg-gradient-to-br from-cyan-400/10 via-white/5 to-amber-300/10 p-6">
         <div>
-          <p className="text-xs uppercase tracking-[0.26em] text-slate-400">Current focus</p>
-          <p className="mt-3 text-2xl font-semibold text-white">{selectedProject?.label}</p>
-          <p className="mt-2 text-sm text-slate-300">{selectedTaskType?.label} session in progress. Keep the timer attached to the active project.</p>
+          <p className="text-xs uppercase tracking-[0.26em] text-slate-400">Current job</p>
+          {selectedJob ? (
+            <>
+              <p className="mt-3 text-2xl font-semibold text-white">{selectedJob.title}</p>
+              <p className="mt-2 text-sm text-slate-300">{selectedJob.projectName}</p>
+            </>
+          ) : (
+            <p className="mt-3 text-slate-400">No job selected</p>
+          )}
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -107,7 +254,7 @@ export function DashboardTimer({ projects, taskTypes }: { projects: Option[]; ta
           </div>
           <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
             <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Status</p>
-            <p className="mt-2 text-2xl font-semibold text-white">{running ? 'Tracking' : 'Paused'}</p>
+            <p className="mt-2 text-2xl font-semibold text-white">{running ? 'Tracking' : 'Idle'}</p>
           </div>
         </div>
       </div>

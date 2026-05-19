@@ -8,6 +8,20 @@
       "when": 1779126094052,
       "tag": "0000_supreme_mandroid",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779129532000,
+      "tag": "0001_seed_demo_data",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779129532001,
+      "tag": "0002_add_jobs_table",
+      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { users, projects, taskTypes, timeEntries, entryFiles } from '../src/schema';
+import { users, projects, taskTypes, timeEntries, entryFiles, jobs } from '../src/schema';
 
 [
   path.resolve(process.cwd(), '.env'),
@@ -58,6 +58,7 @@ async function seed() {
     console.log('🧹 Clearing existing demo data...');
     await db.delete(entryFiles);
     await db.delete(timeEntries);
+    await db.delete(jobs);
     await db.delete(projects);
     await db.delete(users);
     await db.delete(taskTypes);
@@ -98,14 +99,41 @@ async function seed() {
       seededProjects.push(project);
     }
 
+    console.log('📦 Seeding jobs...');
+    const seededJobs = [];
+    const jobSeeds = [
+      { title: '3D Model Design', description: 'Design and model creation for client', projectIdx: 0, taskTypeIdx: 2 },
+      { title: 'Print Setup', description: 'Prepare and setup 3D printer', projectIdx: 1, taskTypeIdx: 1 },
+      { title: 'Quality Scan', description: 'Perform quality control scans', projectIdx: 2, taskTypeIdx: 0 },
+      { title: 'Client Presentation', description: 'Present designs to client', projectIdx: 3, taskTypeIdx: 6 },
+      { title: 'Post Processing', description: 'Cleanup and finishing', projectIdx: 1, taskTypeIdx: 3 },
+    ];
+
+    for (const jobSeed of jobSeeds) {
+      const project = seededProjects[jobSeed.projectIdx];
+      const taskType = seededTaskTypes[jobSeed.taskTypeIdx];
+      const [job] = await db
+        .insert(jobs)
+        .values({
+          userId: project.userId,
+          projectId: project.id,
+          taskTypeId: taskType.id,
+          title: jobSeed.title,
+          description: jobSeed.description,
+          status: 'active',
+        })
+        .returning();
+      seededJobs.push(job);
+    }
+
     console.log('⏱️ Seeding time entries...');
     const timeEntrySeeds = [
-      { user: seededUsers[0], project: seededProjects[0], taskType: seededTaskTypes[0], hours: 2, durationMinutes: 95, note: 'Morning scan prep' },
-      { user: seededUsers[1], project: seededProjects[1], taskType: seededTaskTypes[1], hours: 6, durationMinutes: 120, note: 'Print started successfully' },
-      { user: seededUsers[2], project: seededProjects[2], taskType: seededTaskTypes[2], hours: 10, durationMinutes: null, note: 'Modeling session still running' },
-      { user: seededUsers[3], project: seededProjects[3], taskType: seededTaskTypes[6], hours: 18, durationMinutes: 45, note: 'Client feedback review' },
+      { user: seededUsers[0], project: seededProjects[0], taskType: seededTaskTypes[0], job: seededJobs[0], hours: 2, durationMinutes: 95, note: 'Morning scan prep' },
+      { user: seededUsers[1], project: seededProjects[1], taskType: seededTaskTypes[1], job: seededJobs[1], hours: 6, durationMinutes: 120, note: 'Print started successfully' },
+      { user: seededUsers[2], project: seededProjects[2], taskType: seededTaskTypes[2], job: seededJobs[2], hours: 10, durationMinutes: null, note: 'Modeling session still running' },
+      { user: seededUsers[3], project: seededProjects[3], taskType: seededTaskTypes[6], job: seededJobs[3], hours: 18, durationMinutes: 45, note: 'Client feedback review' },
       { user: seededUsers[4], project: seededProjects[4], taskType: seededTaskTypes[7], hours: 24, durationMinutes: 75, note: 'Research on resin settings' },
-      { user: seededUsers[0], project: seededProjects[1], taskType: seededTaskTypes[3], hours: 32, durationMinutes: 60, note: 'Post-processing cleanup' },
+      { user: seededUsers[0], project: seededProjects[1], taskType: seededTaskTypes[3], job: seededJobs[4], hours: 32, durationMinutes: 60, note: 'Post-processing cleanup' },
       { user: seededUsers[1], project: seededProjects[2], taskType: seededTaskTypes[4], hours: 40, durationMinutes: 110, note: 'CAD redesign pass' },
       { user: seededUsers[2], project: seededProjects[0], taskType: seededTaskTypes[5], hours: 52, durationMinutes: 50, note: 'Render preview export' },
     ];
@@ -118,6 +146,7 @@ async function seed() {
         .values({
           userId: seedItem.user.id,
           projectId: seedItem.project.id,
+          jobId: seedItem.job?.id || null,
           taskTypeId: seedItem.taskType.id,
           startedAt,
           endedAt: seedItem.durationMinutes === null ? null : new Date(startedAt.getTime() + seedItem.durationMinutes * 60000),

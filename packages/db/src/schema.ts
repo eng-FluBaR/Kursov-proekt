@@ -46,6 +46,28 @@ export const taskTypes = pgTable('task_types', {
   icon: varchar('icon', { length: 100 }),
 });
 
+export const jobs = pgTable(
+  'jobs',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    taskTypeId: uuid('task_type_id').references(() => taskTypes.id, { onDelete: 'set null' }),
+    title: varchar('title', { length: 255 }).notNull(),
+    description: text('description'),
+    status: varchar('status', { length: 20 }).notNull().default('active'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: index('idx_jobs_user_id').on(table.userId),
+    projectIdIdx: index('idx_jobs_project_id').on(table.projectId),
+  }),
+);
+
 export const timeEntries = pgTable(
   'time_entries',
   {
@@ -56,6 +78,7 @@ export const timeEntries = pgTable(
     projectId: uuid('project_id')
       .notNull()
       .references(() => projects.id, { onDelete: 'cascade' }),
+    jobId: uuid('job_id').references(() => jobs.id, { onDelete: 'cascade' }),
     taskTypeId: uuid('task_type_id').references(() => taskTypes.id, { onDelete: 'set null' }),
     startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
     endedAt: timestamp('ended_at', { withTimezone: true }),
@@ -66,6 +89,7 @@ export const timeEntries = pgTable(
   (table) => ({
     userIdIdx: index('idx_time_entries_user_id').on(table.userId),
     projectIdIdx: index('idx_time_entries_project_id').on(table.projectId),
+    jobIdIdx: index('idx_time_entries_job_id').on(table.jobId),
     startedAtIdx: index('idx_time_entries_started_at').on(table.startedAt),
   }),
 );
@@ -92,6 +116,7 @@ export const entryFiles = pgTable(
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   projects: many(projects),
+  jobs: many(jobs),
   timeEntries: many(timeEntries),
 }));
 
@@ -100,10 +125,28 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
     fields: [projects.userId],
     references: [users.id],
   }),
+  jobs: many(jobs),
+  timeEntries: many(timeEntries),
+}));
+
+export const jobsRelations = relations(jobs, ({ one, many }) => ({
+  user: one(users, {
+    fields: [jobs.userId],
+    references: [users.id],
+  }),
+  project: one(projects, {
+    fields: [jobs.projectId],
+    references: [projects.id],
+  }),
+  taskType: one(taskTypes, {
+    fields: [jobs.taskTypeId],
+    references: [taskTypes.id],
+  }),
   timeEntries: many(timeEntries),
 }));
 
 export const taskTypesRelations = relations(taskTypes, ({ many }) => ({
+  jobs: many(jobs),
   timeEntries: many(timeEntries),
 }));
 
@@ -115,6 +158,10 @@ export const timeEntriesRelations = relations(timeEntries, ({ one, many }) => ({
   project: one(projects, {
     fields: [timeEntries.projectId],
     references: [projects.id],
+  }),
+  job: one(jobs, {
+    fields: [timeEntries.jobId],
+    references: [jobs.id],
   }),
   taskType: one(taskTypes, {
     fields: [timeEntries.taskTypeId],
