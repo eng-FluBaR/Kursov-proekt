@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 type Option = {
   id: string;
@@ -25,6 +26,7 @@ type TimeEntry = {
   taskTypeId: string | null;
   taskTypeName: string | null;
   startedAt: string;
+  endedAt: string | null;
   durationMinutes: number | null;
   note: string | null;
 };
@@ -37,6 +39,7 @@ function formatTime(totalSeconds: number) {
 }
 
 export function DashboardTimer({ projects, taskTypes }: { projects: Option[]; taskTypes: Option[] }) {
+  const searchParams = useSearchParams();
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [activeJobs, setActiveJobs] = useState<Job[]>([]);
@@ -45,38 +48,55 @@ export function DashboardTimer({ projects, taskTypes }: { projects: Option[]; ta
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Fetch active timer and available jobs on mount
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        // Fetch active jobs
-        const jobsResponse = await fetch('/api/jobs?status=active');
-        const jobsData = (await jobsResponse.json()) as { jobs: Job[] };
-        setActiveJobs(jobsData.jobs || []);
-        if (jobsData.jobs && jobsData.jobs.length > 0) {
-          setSelectedJobId(jobsData.jobs[0].id);
-        }
-
-        // Fetch active timer
-        const timerResponse = await fetch('/api/time-entries/active');
-        const timerData = (await timerResponse.json()) as { entry: TimeEntry | null };
-        if (timerData.entry) {
-          setActiveEntry(timerData.entry);
-          setSelectedJobId(timerData.entry.jobId || '');
-          setRunning(true);
-          // Calculate elapsed time since started
-          const startTime = new Date(timerData.entry.startedAt).getTime();
-          const now = Date.now();
-          setElapsed(Math.floor((now - startTime) / 1000));
-        }
-      } catch (err) {
-        console.error('Failed to fetch data:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
+   // Fetch active timer and available jobs on mount
+   useEffect(() => {
+     async function fetchData() {
+       try {
+         // Fetch active jobs
+         const jobsResponse = await fetch('/api/jobs?status=active');
+         const jobsData = (await jobsResponse.json()) as { jobs: Job[] };
+         setActiveJobs(jobsData.jobs || []);
+         
+         // Check if jobId is in query params first
+         const jobIdParam = searchParams.get('jobId');
+         
+         // Fetch active timer
+         const timerResponse = await fetch('/api/time-entries/active');
+         const timerData = (await timerResponse.json()) as { entry: TimeEntry | null };
+         
+         if (timerData.entry) {
+           console.log('Active entry found:', timerData.entry);
+           setActiveEntry(timerData.entry);
+           // Use jobId from active entry if available
+           if (timerData.entry.jobId) {
+             setSelectedJobId(timerData.entry.jobId);
+           } else if (jobIdParam) {
+             setSelectedJobId(jobIdParam);
+           } else if (jobsData.jobs && jobsData.jobs.length > 0) {
+             setSelectedJobId(jobsData.jobs[0].id);
+           }
+           setRunning(true);
+           // Calculate elapsed time since started
+           const startTime = new Date(timerData.entry.startedAt).getTime();
+           const now = Date.now();
+           setElapsed(Math.floor((now - startTime) / 1000));
+         } else {
+           console.log('No active entry found');
+           // No active timer, use jobIdParam or first job
+           if (jobIdParam) {
+             setSelectedJobId(jobIdParam);
+           } else if (jobsData.jobs && jobsData.jobs.length > 0) {
+             setSelectedJobId(jobsData.jobs[0].id);
+           }
+         }
+       } catch (err) {
+         console.error('Failed to fetch data:', err);
+       } finally {
+         setIsLoading(false);
+       }
+     }
+     fetchData();
+   }, [searchParams]);
 
   // Handle timer tick
   useEffect(() => {
@@ -98,6 +118,8 @@ export function DashboardTimer({ projects, taskTypes }: { projects: Option[]; ta
       return;
     }
 
+    console.log('Starting timer for job:', selectedJobId);
+    setIsLoading(true);
     try {
       // Find selected job to get project details
       const selectedJob = activeJobs.find((j) => j.id === selectedJobId);
@@ -108,6 +130,7 @@ export function DashboardTimer({ projects, taskTypes }: { projects: Option[]; ta
 
       // If there's an active entry, stop it first
       if (activeEntry) {
+        console.log('Stopping previous active entry:', activeEntry.id);
         await fetch(`/api/time-entries/${activeEntry.id}/stop`, {
           method: 'PATCH',
         });
@@ -124,18 +147,30 @@ export function DashboardTimer({ projects, taskTypes }: { projects: Option[]; ta
         }),
       });
 
+      console.log('Start response status:', response.status);
       const data = (await response.json()) as { entry?: TimeEntry; error?: string };
+      console.log('Start response data:', data);
+
       if (!response.ok) {
         setError(data.error ?? 'Failed to start timer');
         return;
       }
 
       setActiveEntry(data.entry ?? null);
+      console.log('Active entry set to:', data.entry);
+      if (data.entry?.id) {
+        console.log('Entry ID:', data.entry.id);
+      } else {
+        console.warn('WARNING: Entry has no ID!', data.entry);
+      }
       setElapsed(0);
       setRunning(true);
+      console.log('Timer started successfully');
     } catch (err) {
       setError('Error starting timer');
-      console.error(err);
+      console.error('Start timer error:', err);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -145,14 +180,21 @@ export function DashboardTimer({ projects, taskTypes }: { projects: Option[]; ta
       return;
     }
 
+    setIsLoading(true);
     try {
       const response = await fetch(`/api/time-entries/${activeEntry.id}/stop`, {
         method: 'PATCH',
       });
 
       const data = (await response.json()) as { entry?: TimeEntry; error?: string };
+
       if (!response.ok) {
         setError(data.error ?? 'Failed to stop timer');
+        // Even if API fails, we still reset the timer state locally
+        // to prevent the UI from showing a stuck timer
+        setActiveEntry(null);
+        setElapsed(0);
+        setRunning(false);
         return;
       }
 
@@ -162,8 +204,15 @@ export function DashboardTimer({ projects, taskTypes }: { projects: Option[]; ta
     } catch (err) {
       setError('Error stopping timer');
       console.error(err);
+      // Even if there's an exception, we still reset the timer state locally
+      setActiveEntry(null);
+      setElapsed(0);
+      setRunning(false);
+    } finally {
+      setIsLoading(false);
     }
   }
+
 
   const selectedJob = activeJobs.find((j) => j.id === selectedJobId);
 

@@ -1,0 +1,3 @@
+-- Migration: Fix timer stop button and improve error handling
+-- This is a UI/logic fix for the dashboard timer component
+-- No database schema changes required

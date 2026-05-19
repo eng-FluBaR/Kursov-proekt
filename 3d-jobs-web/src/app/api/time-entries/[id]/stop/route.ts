@@ -15,6 +15,7 @@ export async function PATCH(
   }
 
   const id = params.id;
+  console.log('Stopping timer for entry:', id);
 
   try {
     const db = getDb();
@@ -26,7 +27,10 @@ export async function PATCH(
       .where(eq(timeEntries.id, id))
       .limit(1);
 
+    console.log('Found entry:', entry);
+
     if (!entry) {
+      console.log('Entry not found:', id);
       return NextResponse.json({ error: 'Entry not found' }, { status: 404 });
     }
 
@@ -37,6 +41,8 @@ export async function PATCH(
     const durationMs = now.getTime() - new Date(entry.startedAt).getTime();
     const durationMinutes = Math.round(durationMs / 60000);
 
+    console.log('Updating entry duration:', durationMinutes, 'minutes');
+
     const [updatedEntry] = await db
       .update(timeEntries)
       .set({
@@ -46,6 +52,7 @@ export async function PATCH(
       .where(eq(timeEntries.id, id))
       .returning();
 
+    console.log('Updated entry:', updatedEntry);
     return NextResponse.json({ entry: updatedEntry });
   } catch (error) {
     console.error('Failed to stop timer:', error);

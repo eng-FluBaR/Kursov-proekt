@@ -14,20 +14,10 @@ export async function GET(request: Request) {
   try {
     const db = getDb();
     
-    const [entry] = await db
-      .select({
-        id: timeEntries.id,
-        projectId: timeEntries.projectId,
-        projectName: projects.name,
-        taskTypeId: timeEntries.taskTypeId,
-        taskTypeName: taskTypes.name,
-        startedAt: timeEntries.startedAt,
-        durationMinutes: timeEntries.durationMinutes,
-        note: timeEntries.note,
-      })
+    // Get the active entry without JOIN first
+    const entries = await db
+      .select()
       .from(timeEntries)
-      .innerJoin(projects, eq(timeEntries.projectId, projects.id))
-      .leftJoin(taskTypes, eq(timeEntries.taskTypeId, taskTypes.id))
       .where(
         and(
           eq(timeEntries.userId, authUser.id),
@@ -35,12 +25,43 @@ export async function GET(request: Request) {
         )
       )
       .limit(1);
-
-    if (!entry) {
+    
+    if (!entries.length) {
       return NextResponse.json({ entry: null });
     }
 
-    return NextResponse.json({ entry });
+    const entry = entries[0];
+    
+    // Get project name separately
+    const [project] = await db
+      .select({ name: projects.name })
+      .from(projects)
+      .where(eq(projects.id, entry.projectId));
+    
+    // Get task type name if exists
+    let taskTypeName = null;
+    if (entry.taskTypeId) {
+      const [taskType] = await db
+        .select({ name: taskTypes.name })
+        .from(taskTypes)
+        .where(eq(taskTypes.id, entry.taskTypeId));
+      taskTypeName = taskType?.name || null;
+    }
+
+    const response = {
+      id: entry.id,
+      projectId: entry.projectId,
+      projectName: project?.name || 'Unknown Project',
+      jobId: entry.jobId,
+      taskTypeId: entry.taskTypeId,
+      taskTypeName: taskTypeName,
+      startedAt: entry.startedAt instanceof Date ? entry.startedAt.toISOString() : String(entry.startedAt),
+      endedAt: entry.endedAt ? (entry.endedAt instanceof Date ? entry.endedAt.toISOString() : String(entry.endedAt)) : null,
+      durationMinutes: entry.durationMinutes,
+      note: entry.note,
+    };
+
+    return NextResponse.json({ entry: response });
   } catch (error) {
     console.error('Failed to fetch active timer:', error);
     return NextResponse.json(

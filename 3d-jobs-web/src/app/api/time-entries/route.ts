@@ -91,11 +91,48 @@ export async function POST(request: Request) {
       })
       .returning();
 
-    return NextResponse.json({ entry: newEntry }, { status: 201 });
+    if (!newEntry || !newEntry.id) {
+      return NextResponse.json(
+        { error: 'Failed to create time entry - no ID returned' },
+        { status: 500 }
+      );
+    }
+
+    // Fetch project name
+    const [project] = await db
+      .select({ name: projects.name })
+      .from(projects)
+      .where(eq(projects.id, projectId));
+
+    // Get task type name if exists
+    let taskTypeName = null;
+    if (newEntry.taskTypeId) {
+      const [taskType] = await db
+        .select({ name: taskTypes.name })
+        .from(taskTypes)
+        .where(eq(taskTypes.id, newEntry.taskTypeId));
+      taskTypeName = taskType?.name || null;
+    }
+
+    const entry = {
+      id: newEntry.id,
+      projectId: projectId,
+      projectName: project?.name || 'Unknown Project',
+      jobId: newEntry.jobId || null,
+      taskTypeId: newEntry.taskTypeId || null,
+      taskTypeName: taskTypeName,
+      startedAt: newEntry.startedAt instanceof Date ? newEntry.startedAt.toISOString() : String(newEntry.startedAt),
+      endedAt: newEntry.endedAt ? (newEntry.endedAt instanceof Date ? newEntry.endedAt.toISOString() : String(newEntry.endedAt)) : null,
+      durationMinutes: newEntry.durationMinutes,
+      note: newEntry.note,
+    };
+
+    return NextResponse.json({ entry }, { status: 201 });
   } catch (error) {
-    console.error('Failed to create time entry:', error);
+    console.error('Failed to create time entry - exception:', error);
+    console.error('Error type:', error instanceof Error ? error.message : String(error));
     return NextResponse.json(
-      { error: 'Failed to create time entry' },
+      { error: error instanceof Error ? error.message : 'Failed to create time entry' },
       { status: 500 }
     );
   }
@@ -120,6 +157,7 @@ export async function GET(request: Request) {
         id: timeEntries.id,
         projectId: timeEntries.projectId,
         projectName: projects.name,
+        jobId: timeEntries.jobId,
         taskTypeId: timeEntries.taskTypeId,
         taskTypeName: taskTypes.name,
         startedAt: timeEntries.startedAt,

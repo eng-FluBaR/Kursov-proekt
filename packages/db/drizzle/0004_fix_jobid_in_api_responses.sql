@@ -1,0 +1,3 @@
+-- Migration: Fix API endpoints to include jobId in time entry responses
+-- This adds jobId field to active timer and time entries list endpoints
+-- No database schema changes required - jobId column already exists from migration 0002

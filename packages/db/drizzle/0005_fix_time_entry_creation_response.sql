@@ -1,0 +1,3 @@
+-- Migration: Fix time entry creation response format
+-- POST /api/time-entries now returns full entry with project details and jobId
+-- This ensures activeEntry has all necessary data for stop endpoint to work
