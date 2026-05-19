@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ReactNode } from 'react';
 import {
   Pressable,
+  DimensionValue,
   ScrollView,
   StyleProp,
   StyleSheet,
@@ -169,7 +170,7 @@ export function TimerDigits({ value, accent }: { value: string; accent: string }
   return <Text style={[styles.timerDigits, { color: accent }]}>{value}</Text>;
 }
 
-export function SkeletonBar({ width = '100%' }: { width?: string }) {
+export function SkeletonBar({ width = '100%' }: { width?: DimensionValue }) {
   return <View style={[styles.skeletonBar, { width }]} />;
 }
 

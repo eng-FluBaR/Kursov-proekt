@@ -2,8 +2,8 @@ import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
-import { users } from '@3d-jobs/db/src/schema';
-import { setAuthCookie } from '@/lib/auth-session';
+import { projects, users } from '@3d-jobs/db/src/schema';
+import { createAuthToken, setAuthCookie } from '@/lib/auth-session';
 import { getDb } from '@/lib/db';
 
 export const runtime = 'nodejs';
@@ -57,9 +57,16 @@ export async function POST(request: Request) {
         role: users.role,
       });
 
+    await db.insert(projects).values({
+      userId: user.id,
+      name: 'Default Project',
+      color: '#3B82F6',
+      description: 'Created during registration',
+    });
+
     await setAuthCookie(user);
 
-    return NextResponse.json({ user }, { status: 201 });
+    return NextResponse.json({ user, token: createAuthToken(user) }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown register error.';
 

@@ -1,92 +1,89 @@
-import { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
-import { getTodayEntries, getProject } from '@/mockData';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+import { useAuth } from '@/contexts/auth-context';
+import { apiRequest, formatDuration, Project, TimeEntry } from '@/lib/api';
 
 export default function DashboardScreen() {
-  const [isRunning, setIsRunning] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const todayEntries = getTodayEntries();
-  const totalMinutesToday = todayEntries.reduce((sum, e) => sum + e.duration, 0);
+  const { token, user, logout } = useAuth();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [entries, setEntries] = useState<TimeEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isRunning) {
-      interval = setInterval(() => {
-        setElapsed(e => e + 1);
-      }, 1000);
+  const loadData = useCallback(async () => {
+    if (!token) {
+      return;
     }
-    return () => clearInterval(interval);
-  }, [isRunning]);
 
-  const hours = Math.floor(elapsed / 3600);
-  const minutes = Math.floor((elapsed % 3600) / 60);
-  const seconds = elapsed % 60;
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const [projectsResponse, entriesResponse] = await Promise.all([
+        apiRequest<{ projects: Project[] }>('/api/mobile/projects', { token }),
+        apiRequest<{ timeEntries: TimeEntry[] }>('/api/mobile/time-entries', { token }),
+      ]);
+      setProjects(projectsResponse.projects);
+      setEntries(entriesResponse.timeEntries);
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : 'Could not load dashboard.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token]);
+
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+
+  const today = new Date().toISOString().slice(0, 10);
+  const todayEntries = entries.filter((entry) => entry.startedAt.slice(0, 10) === today);
+  const totalMinutesToday = todayEntries.reduce((sum, entry) => sum + (entry.durationMinutes ?? 0), 0);
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scroll}>
-        <Text style={styles.title}>📊 Dashboard</Text>
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.title}>Dashboard</Text>
+            <Text style={styles.subtitle}>{user?.email}</Text>
+          </View>
+          <TouchableOpacity onPress={logout} style={styles.logoutButton}>
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
 
-        {/* Summary Cards */}
+        {isLoading ? <ActivityIndicator /> : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>Today&apos;s Total</Text>
-            <Text style={styles.statValue}>{Math.floor(totalMinutesToday / 60)}h {totalMinutesToday % 60}m</Text>
+            <Text style={styles.statValue}>{formatDuration(totalMinutesToday)}</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Tasks</Text>
-            <Text style={styles.statValue}>{todayEntries.length}</Text>
+            <Text style={styles.statLabel}>Projects</Text>
+            <Text style={styles.statValue}>{projects.length}</Text>
           </View>
         </View>
 
-        {/* Timer Widget */}
-        <View style={styles.timerCard}>
-          <Text style={styles.timerLabel}>Active Timer</Text>
-          <Text style={styles.timerDisplay}>
-            {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
-          </Text>
-          <View style={styles.buttonRow}>
-            {!isRunning ? (
-              <TouchableOpacity
-                style={[styles.button, styles.startButton]}
-                onPress={() => setIsRunning(true)}
-              >
-                <Text style={styles.buttonText}>Start</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={[styles.button, styles.stopButton]}
-                onPress={() => setIsRunning(false)}
-              >
-                <Text style={styles.buttonText}>Stop</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        {/* Today's Entries */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today&apos;s Entries</Text>
-          {todayEntries.length === 0 ? (
+          <Text style={styles.sectionTitle}>Recent Entries</Text>
+          {entries.length === 0 && !isLoading ? (
             <Text style={styles.emptyText}>No entries yet</Text>
           ) : (
-            todayEntries.map(entry => {
-              const project = getProject(entry.projectId);
-              return (
-                <View key={entry.id} style={styles.entryItem}>
-                  <View
-                    style={[styles.colorDot, { backgroundColor: project?.color }]}
-                  />
-                  <View style={styles.entryContent}>
-                    <Text style={styles.entryTitle}>{project?.name}</Text>
-                    <Text style={styles.entrySubtitle}>
-                      {entry.taskType} • {entry.startTime}-{entry.endTime}
-                    </Text>
-                  </View>
-                  <Text style={styles.entryDuration}>{entry.duration}m</Text>
+            entries.slice(0, 8).map((entry) => (
+              <View key={entry.id} style={styles.entryItem}>
+                <View style={[styles.colorDot, { backgroundColor: entry.projectColor }]} />
+                <View style={styles.entryContent}>
+                  <Text style={styles.entryTitle}>{entry.projectName}</Text>
+                  <Text style={styles.entrySubtitle}>
+                    {entry.taskTypeName ?? 'Task'} - {new Date(entry.startedAt).toLocaleString()}
+                  </Text>
                 </View>
-              );
-            })
+                <Text style={styles.entryDuration}>{formatDuration(entry.durationMinutes)}</Text>
+              </View>
+            ))
           )}
         </View>
       </ScrollView>
@@ -95,127 +92,25 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  scroll: {
-    padding: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#f0f9ff',
-    padding: 16,
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#3B82F6',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 8,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  timerCard: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#3B82F6',
-    marginBottom: 20,
-  },
-  timerLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 12,
-    color: '#666',
-  },
-  timerDisplay: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    fontFamily: 'monospace',
-    color: '#3B82F6',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  startButton: {
-    backgroundColor: '#10B981',
-  },
-  stopButton: {
-    backgroundColor: '#EF4444',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  entryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f9f9f9',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  colorDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 12,
-  },
-  entryContent: {
-    flex: 1,
-  },
-  entryTitle: {
-    fontWeight: '600',
-    fontSize: 14,
-    marginBottom: 2,
-  },
-  entrySubtitle: {
-    fontSize: 12,
-    color: '#666',
-  },
-  entryDuration: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#999',
-    paddingVertical: 20,
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  scroll: { padding: 16 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  title: { fontSize: 28, fontWeight: 'bold' },
+  subtitle: { marginTop: 4, color: '#666' },
+  logoutButton: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  logoutText: { color: '#333', fontWeight: '700' },
+  error: { color: '#be123c', backgroundColor: '#fff1f2', borderRadius: 8, padding: 12, marginBottom: 12 },
+  statsGrid: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  statCard: { flex: 1, backgroundColor: '#f0f9ff', padding: 16, borderRadius: 12, borderLeftWidth: 4, borderLeftColor: '#3B82F6' },
+  statLabel: { fontSize: 12, color: '#666', marginBottom: 8 },
+  statValue: { fontSize: 20, fontWeight: 'bold', color: '#333' },
+  section: { marginBottom: 20 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
+  entryItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9f9f9', padding: 12, borderRadius: 8, marginBottom: 8, borderWidth: 1, borderColor: '#eee' },
+  colorDot: { width: 12, height: 12, borderRadius: 6, marginRight: 12 },
+  entryContent: { flex: 1 },
+  entryTitle: { fontWeight: '600', fontSize: 14, marginBottom: 2 },
+  entrySubtitle: { fontSize: 12, color: '#666' },
+  entryDuration: { fontSize: 12, fontWeight: '600', color: '#666' },
+  emptyText: { textAlign: 'center', color: '#999', paddingVertical: 20 },
 });

@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 import { users } from '@3d-jobs/db/src/schema';
-import { setAuthCookie } from '@/lib/auth-session';
+import { createAuthToken, setAuthCookie } from '@/lib/auth-session';
 import { getDb } from '@/lib/db';
 
 export const runtime = 'nodejs';
@@ -47,14 +47,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
     }
 
-    await setAuthCookie({ id: user.id, email: user.email, role: user.role });
+    const authUser = { id: user.id, email: user.email, role: user.role };
+    await setAuthCookie(authUser);
 
     return NextResponse.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-      },
+      user: authUser,
+      token: createAuthToken(authUser),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown login error.';
