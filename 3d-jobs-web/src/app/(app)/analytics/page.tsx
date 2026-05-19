@@ -28,14 +28,17 @@ const csvRows = projectHours.map((project) => ({ project: project.name, hours: p
 
 export default function AnalyticsPage() {
   const total = projectHours.reduce((sum, project) => sum + project.value, 0);
-  let offset = 0;
-  const donutStyle = { background: `conic-gradient(${taskShare
-    .map((item) => {
-      const from = offset;
-      offset += (item.value / 100) * 360;
-      return `${item.color} ${from}deg ${offset}deg`;
-    })
-    .join(', ')})` };
+  const donutSegments = taskShare.reduce(
+    (chart, item) => {
+      const nextOffset = chart.offset + (item.value / 100) * 360;
+      return {
+        offset: nextOffset,
+        segments: [...chart.segments, `${item.color} ${chart.offset}deg ${nextOffset}deg`],
+      };
+    },
+    { offset: 0, segments: [] as string[] }
+  );
+  const donutStyle = { background: `conic-gradient(${donutSegments.segments.join(', ')})` };
 
   return (
     <div className="space-y-6">

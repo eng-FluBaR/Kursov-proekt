@@ -19,6 +19,8 @@
     "dev:mobile": "npm --workspace 3d-jobs-mobile run start",
     "build:web": "npm --workspace 3d-jobs-web run build",
     "build:mobile": "npm --workspace 3d-jobs-mobile run build || echo \"No build script for mobile\"",
+    "db:migrate": "npm --workspace @3d-jobs/db run migrate",
+    "db:seed": "npm --workspace @3d-jobs/db run seed",
     "lint": "npm workspaces run lint"
   }
   ,

@@ -1,98 +1,221 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
+import { getTodayEntries, getProject } from '@/mockData';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+export default function DashboardScreen() {
+  const [isRunning, setIsRunning] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const todayEntries = getTodayEntries();
+  const totalMinutesToday = todayEntries.reduce((sum, e) => sum + e.duration, 0);
 
-export default function HomeScreen() {
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isRunning) {
+      interval = setInterval(() => {
+        setElapsed(e => e + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isRunning]);
+
+  const hours = Math.floor(elapsed / 3600);
+  const minutes = Math.floor((elapsed % 3600) / 60);
+  const seconds = elapsed % 60;
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scroll}>
+        <Text style={styles.title}>📊 Dashboard</Text>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        {/* Summary Cards */}
+        <View style={styles.statsGrid}>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Today&apos;s Total</Text>
+            <Text style={styles.statValue}>{Math.floor(totalMinutesToday / 60)}h {totalMinutesToday % 60}m</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Tasks</Text>
+            <Text style={styles.statValue}>{todayEntries.length}</Text>
+          </View>
+        </View>
+
+        {/* Timer Widget */}
+        <View style={styles.timerCard}>
+          <Text style={styles.timerLabel}>Active Timer</Text>
+          <Text style={styles.timerDisplay}>
+            {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+          </Text>
+          <View style={styles.buttonRow}>
+            {!isRunning ? (
+              <TouchableOpacity
+                style={[styles.button, styles.startButton]}
+                onPress={() => setIsRunning(true)}
+              >
+                <Text style={styles.buttonText}>Start</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.button, styles.stopButton]}
+                onPress={() => setIsRunning(false)}
+              >
+                <Text style={styles.buttonText}>Stop</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {/* Today's Entries */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Today&apos;s Entries</Text>
+          {todayEntries.length === 0 ? (
+            <Text style={styles.emptyText}>No entries yet</Text>
+          ) : (
+            todayEntries.map(entry => {
+              const project = getProject(entry.projectId);
+              return (
+                <View key={entry.id} style={styles.entryItem}>
+                  <View
+                    style={[styles.colorDot, { backgroundColor: project?.color }]}
+                  />
+                  <View style={styles.entryContent}>
+                    <Text style={styles.entryTitle}>{project?.name}</Text>
+                    <Text style={styles.entrySubtitle}>
+                      {entry.taskType} • {entry.startTime}-{entry.endTime}
+                    </Text>
+                  </View>
+                  <Text style={styles.entryDuration}>{entry.duration}m</Text>
+                </View>
+              );
+            })
+          )}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
   },
-  stepContainer: {
-    gap: 8,
+  scroll: {
+    padding: 16,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#f0f9ff',
+    padding: 16,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3B82F6',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  timerCard: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#3B82F6',
+    marginBottom: 20,
+  },
+  timerLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 12,
+    color: '#666',
+  },
+  timerDisplay: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    fontFamily: 'monospace',
+    color: '#3B82F6',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  button: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  startButton: {
+    backgroundColor: '#10B981',
+  },
+  stopButton: {
+    backgroundColor: '#EF4444',
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  section: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  entryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  colorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+  entryContent: {
+    flex: 1,
+  },
+  entryTitle: {
+    fontWeight: '600',
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  entrySubtitle: {
+    fontSize: 12,
+    color: '#666',
+  },
+  entryDuration: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#999',
+    paddingVertical: 20,
   },
 });

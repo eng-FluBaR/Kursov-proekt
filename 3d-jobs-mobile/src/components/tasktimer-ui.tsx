@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TextStyle,
   View,
   ViewStyle,
 } from 'react-native';
@@ -78,7 +77,7 @@ export function SelectPills<T extends string>({
   onChange,
 }: {
   value: T;
-  options: Array<{ value: T; label: string; color?: string }>;
+  options: { value: T; label: string; color?: string }[];
   onChange: (value: T) => void;
 }) {
   return (
