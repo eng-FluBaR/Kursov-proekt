@@ -2,31 +2,42 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { Config } from 'drizzle-kit';
 
-const envPath = path.resolve(process.cwd(), '../../.env');
+function loadEnvFile(filePath: string) {
+  try {
+    const fileContents = readFileSync(filePath, 'utf8');
 
-try {
-  const fileContents = readFileSync(envPath, 'utf8');
-  for (const line of fileContents.split(/\r?\n/)) {
-    const trimmedLine = line.trim();
+    for (const line of fileContents.split(/\r?\n/)) {
+      const trimmedLine = line.trim();
 
-    if (!trimmedLine || trimmedLine.startsWith('#')) {
-      continue;
+      if (!trimmedLine || trimmedLine.startsWith('#')) {
+        continue;
+      }
+
+      const equalsIndex = trimmedLine.indexOf('=');
+      if (equalsIndex === -1) {
+        continue;
+      }
+
+      const key = trimmedLine.slice(0, equalsIndex).trim();
+      const value = trimmedLine.slice(equalsIndex + 1).trim().replace(/^['"]|['"]$/g, '');
+
+      if (key && process.env[key] === undefined) {
+        process.env[key] = value;
+      }
     }
-
-    const equalsIndex = trimmedLine.indexOf('=');
-    if (equalsIndex === -1) {
-      continue;
-    }
-
-    const key = trimmedLine.slice(0, equalsIndex).trim();
-    const value = trimmedLine.slice(equalsIndex + 1).trim().replace(/^['"]|['"]$/g, '');
-
-    if (key && process.env[key] === undefined) {
-      process.env[key] = value;
-    }
+  } catch {
+    // Fall back to the next possible env location.
   }
-} catch {
-  // Fall back to process.env when the root .env file is unavailable.
+}
+
+[
+  path.resolve(process.cwd(), '.env'),
+  path.resolve(process.cwd(), '..', '.env'),
+  path.resolve(process.cwd(), '..', '..', '.env'),
+].forEach(loadEnvFile);
+
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL is required. Add your Neon connection string to the root .env file.');
 }
 
 export default {
@@ -34,6 +45,6 @@ export default {
   schema: './src/schema.ts',
   out: './drizzle',
   dbCredentials: {
-    url: process.env.DATABASE_URL || 'postgresql://localhost/3djobs',
+    url: process.env.DATABASE_URL,
   },
 } satisfies Config;

@@ -1,9 +1,9 @@
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 import { users } from '@3d-jobs/db/src/schema';
+import { setAuthCookie } from '@/lib/auth-session';
 import { getDb } from '@/lib/db';
 
 export const runtime = 'nodejs';
@@ -47,18 +47,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
     }
 
-    const cookieStore = await cookies();
-    cookieStore.set(
-      'tasktimer_user',
-      JSON.stringify({ id: user.id, email: user.email, role: user.role }),
-      {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-        path: '/',
-        maxAge: 60 * 60 * 24 * 7,
-      },
-    );
+    await setAuthCookie({ id: user.id, email: user.email, role: user.role });
 
     return NextResponse.json({
       user: {

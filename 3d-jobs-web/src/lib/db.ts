@@ -22,12 +22,53 @@ function readDatabaseUrlFromEnvFile(filePath: string) {
   }
 }
 
+const checkedEnvFiles = [
+  path.resolve(process.cwd(), '.env.local'),
+  path.resolve(process.cwd(), '.env'),
+  path.resolve(process.cwd(), '..', '.env'),
+];
+
+export function getDatabaseUrlStatus() {
+  const envDatabaseUrl = process.env.DATABASE_URL;
+
+  if (envDatabaseUrl) {
+    return {
+      configured: true,
+      source: 'process.env.DATABASE_URL',
+      checkedFiles: checkedEnvFiles,
+    };
+  }
+
+  for (const filePath of checkedEnvFiles) {
+    if (readDatabaseUrlFromEnvFile(filePath)) {
+      return {
+        configured: true,
+        source: filePath,
+        checkedFiles: checkedEnvFiles,
+      };
+    }
+  }
+
+  return {
+    configured: false,
+    source: null,
+    checkedFiles: checkedEnvFiles,
+  };
+}
+
 function getDatabaseUrl() {
+  const status = getDatabaseUrlStatus();
+
+  if (status.source === 'process.env.DATABASE_URL') {
+    return process.env.DATABASE_URL;
+  }
+
+  if (status.source) {
+    return readDatabaseUrlFromEnvFile(status.source);
+  }
+
   return (
-    process.env.DATABASE_URL ??
-    readDatabaseUrlFromEnvFile(path.resolve(process.cwd(), '.env.local')) ??
-    readDatabaseUrlFromEnvFile(path.resolve(process.cwd(), '.env')) ??
-    readDatabaseUrlFromEnvFile(path.resolve(process.cwd(), '..', '.env'))
+    undefined
   );
 }
 
