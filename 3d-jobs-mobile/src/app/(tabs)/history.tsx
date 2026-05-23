@@ -72,7 +72,7 @@ export default function HistoryScreen() {
               <View style={styles.entryContent}>
                 <Text style={styles.entryTitle}>{entry.projectName}</Text>
                 <Text style={styles.entrySubtitle}>
-                  {entry.taskTypeName ?? 'Task'} - {new Date(entry.startedAt).toLocaleString()}
+                  {entry.jobTitle ?? entry.taskTypeName ?? 'Task'} - {new Date(entry.startedAt).toLocaleString()}
                 </Text>
                 {entry.note ? <Text style={styles.entryNote}>{entry.note}</Text> : null}
               </View>

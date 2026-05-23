@@ -45,12 +45,29 @@ export type TimeEntry = {
   projectId: string;
   projectName: string;
   projectColor: string;
+  jobId?: string | null;
+  jobTitle?: string | null;
   taskTypeId: string | null;
   taskTypeName: string | null;
   startedAt: string;
   endedAt: string | null;
   durationMinutes: number | null;
   note: string | null;
+};
+
+export type Job = {
+  id: string;
+  projectId: string;
+  projectName: string;
+  taskTypeId: string | null;
+  taskTypeName: string | null;
+  title: string;
+  description: string | null;
+  status: 'active' | 'paused' | 'completed' | string;
+  userId?: string;
+  ownerEmail?: string | null;
+  isShared?: boolean;
+  createdAt: string;
 };
 
 export class ApiError extends Error {
@@ -60,7 +77,7 @@ export class ApiError extends Error {
 }
 
 type RequestOptions = {
-  method?: 'GET' | 'POST';
+  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   token?: string | null;
   body?: unknown;
 };

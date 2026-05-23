@@ -3,12 +3,13 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { useAuth } from '@/contexts/auth-context';
-import { apiRequest, formatDuration, Project, TimeEntry } from '@/lib/api';
+import { apiRequest, formatDuration, Job, Project, TimeEntry } from '@/lib/api';
 
 export default function DashboardScreen() {
   const { token, user, logout } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [entries, setEntries] = useState<TimeEntry[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -21,25 +22,14 @@ export default function DashboardScreen() {
     setIsLoading(true);
 
     try {
-      const [projectsResponse, jobsResponse] = await Promise.all([
+      const [projectsResponse, entriesResponse, jobsResponse] = await Promise.all([
         apiRequest<{ projects: Project[] }>('/api/mobile/projects', { token }),
-        apiRequest<{ jobs: any[] }>('/api/jobs', { token }),
+        apiRequest<{ timeEntries: TimeEntry[] }>('/api/mobile/time-entries', { token }),
+        apiRequest<{ jobs: Job[] }>('/api/mobile/time-entries?status=all&ownOnly=true', { token }),
       ]);
       setProjects(projectsResponse.projects);
-      // Convert jobs to TimeEntry format for compatibility
-      const convertedEntries = jobsResponse.jobs.map(job => ({
-        id: job.id,
-        projectId: job.projectId,
-        projectName: job.projectName,
-        projectColor: projectsResponse.projects.find(p => p.id === job.projectId)?.color || '#3B82F6',
-        taskTypeId: job.taskTypeId,
-        taskTypeName: job.taskTypeName,
-        startedAt: job.createdAt,
-        endedAt: null,
-        durationMinutes: null,
-        note: job.description,
-      }));
-      setEntries(convertedEntries);
+      setEntries(entriesResponse.timeEntries);
+      setJobs(jobsResponse.jobs);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Could not load dashboard.');
     } finally {
@@ -78,6 +68,10 @@ export default function DashboardScreen() {
             <Text style={styles.statLabel}>Projects</Text>
             <Text style={styles.statValue}>{projects.length}</Text>
           </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Jobs</Text>
+            <Text style={styles.statValue}>{jobs.length}</Text>
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -91,7 +85,7 @@ export default function DashboardScreen() {
                 <View style={styles.entryContent}>
                   <Text style={styles.entryTitle}>{entry.projectName}</Text>
                   <Text style={styles.entrySubtitle}>
-                    {entry.taskTypeName ?? 'Task'} - {new Date(entry.startedAt).toLocaleString()}
+                  {entry.jobTitle ?? entry.taskTypeName ?? 'Task'} - {new Date(entry.startedAt).toLocaleString()}
                   </Text>
                 </View>
                 <Text style={styles.entryDuration}>{formatDuration(entry.durationMinutes)}</Text>
