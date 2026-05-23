@@ -26,6 +26,19 @@ type JobDetailModalProps = {
   onJobUpdated?: (job: Job) => void;
 };
 
+type TimeEntry = {
+  id: string;
+  projectId: string;
+  projectName: string;
+  jobId: string | null;
+  taskTypeId: string | null;
+  taskTypeName: string | null;
+  startedAt: string;
+  endedAt: string | null;
+  durationMinutes: number | null;
+  note: string | null;
+};
+
 export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: JobDetailModalProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -42,6 +55,7 @@ export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: Job
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [notesMessage, setNotesMessage] = useState('');
+  const [startMessage, setStartMessage] = useState('');
   const [loadedNotesJobId, setLoadedNotesJobId] = useState<string | null>(null);
   const notesTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const router = useRouter();
@@ -140,10 +154,37 @@ export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: Job
 
     const activeJob = currentJob;
     setIsStarting(true);
+    setStartMessage('');
     try {
+      const activeResponse = await fetch('/api/time-entries/active');
+      if (activeResponse.ok) {
+        const activeData = (await activeResponse.json()) as { entry: TimeEntry | null };
+        if (activeData.entry?.id) {
+          await fetch(`/api/time-entries/${activeData.entry.id}/stop`, { method: 'PATCH' });
+        }
+      }
+
+      const response = await fetch('/api/time-entries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: activeJob.projectId,
+          jobId: activeJob.id,
+          startedAt: new Date().toISOString(),
+        }),
+      });
+      const data = (await response.json()) as { entry?: TimeEntry; error?: string };
+
+      if (!response.ok || !data.entry) {
+        setStartMessage(data.error ?? 'Could not start timer.');
+        return;
+      }
+
       router.push(`/jobs?jobId=${activeJob.id}&timer=1`);
       onClose();
       onStartTimer(activeJob.id);
+    } catch (error) {
+      setStartMessage(error instanceof Error ? error.message : 'Could not start timer.');
     } finally {
       setIsStarting(false);
     }
@@ -286,6 +327,7 @@ export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: Job
         </div>
 
         <div className="sticky bottom-0 z-10 flex gap-3 border-t border-white/10 bg-slate-950/95 py-4 backdrop-blur">
+          {startMessage ? <p className="absolute -top-8 left-0 text-sm text-rose-300">{startMessage}</p> : null}
           <button
             type="button"
             onClick={handleStartTimer}

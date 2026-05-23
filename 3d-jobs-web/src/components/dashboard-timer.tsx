@@ -38,12 +38,15 @@ function formatMinutes(totalMinutes: number) {
   return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
 }
 
-function formatElapsedMinutes(totalSeconds: number) {
+function formatElapsedTime(totalSeconds: number) {
   if (totalSeconds <= 0) {
-    return formatMinutes(0);
+    return '00h 00m 00s';
   }
 
-  return formatMinutes(Math.ceil(totalSeconds / 60));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
 }
 
 export function DashboardTimer(props: { projects: Option[]; taskTypes: Option[] }) {
@@ -243,8 +246,8 @@ export function DashboardTimer(props: { projects: Option[]; taskTypes: Option[] 
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.26em] text-slate-400">Active timer</p>
-            <h3 className="mt-2 text-4xl font-semibold text-white tabular-nums">{formatElapsedMinutes(elapsed)}</h3>
-            <p className="mt-2 text-sm text-slate-300">{running ? 'Tracking in whole minutes' : 'Timer idle'}</p>
+            <h3 className="mt-2 text-4xl font-semibold text-white tabular-nums">{formatElapsedTime(elapsed)}</h3>
+            <p className="mt-2 text-sm text-slate-300">{running ? 'Tracking live in seconds' : 'Timer idle'}</p>
           </div>
           <button
             type="button"
@@ -308,7 +311,7 @@ export function DashboardTimer(props: { projects: Option[]; taskTypes: Option[] 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
             <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Session Time</p>
-            <p className="mt-2 text-xl font-semibold text-white tabular-nums">{formatElapsedMinutes(elapsed)}</p>
+            <p className="mt-2 text-xl font-semibold text-white tabular-nums">{formatElapsedTime(elapsed)}</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
             <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Total for Job</p>
