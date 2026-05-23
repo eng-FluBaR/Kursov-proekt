@@ -5,39 +5,44 @@ import { useEffect, useState } from 'react';
 
 import type { AuthUser } from '@/lib/auth-session';
 
-const refreshMessages = [
-  'Ти си най-добрия.',
-  'Не остана до края на работния ден.',
-  'Идват почивни дни, стягай се.',
-  'Днес задачите се предават по график.',
-  'Още малко и кафето печели.',
-  'Фокусът ти стои добре.',
-  'Давай смело, машината работи.',
-  'Планът изглежда под контрол.',
-  'Работният ден няма шанс.',
-  'Малките стъпки правят големия финал.',
-  'Таймерът те уважава.',
-  'Още една задача и си легенда.',
-  'Почивката идва, но първо победата.',
-  'Днес си в режим продуктивност.',
-  'Всичко важно е на един клик.',
-  'Краят на деня се вижда.',
-  'Добра работа, продължавай.',
-  'Списъкът с задачи ще олекне.',
-  'Имаш ритъм.',
-  'Екипът разчита на теб.',
-  'Днес нещата се подреждат.',
-  'Още малко и отчетът ще пее.',
-  'Ти караш проекта напред.',
-  'Спокойно, задачите падат една по една.',
-  'Пет минути фокус правят чудеса.',
+export const refreshMessages = [
+  '\u0422\u0438 \u0441\u0438 \u043d\u0430\u0439-\u0434\u043e\u0431\u0440\u0438\u044f.',
+  '\u041d\u0435 \u043e\u0441\u0442\u0430\u043d\u0430 \u0434\u043e \u043a\u0440\u0430\u044f \u043d\u0430 \u0440\u0430\u0431\u043e\u0442\u043d\u0438\u044f \u0434\u0435\u043d.',
+  '\u0418\u0434\u0432\u0430\u0442 \u043f\u043e\u0447\u0438\u0432\u043d\u0438 \u0434\u043d\u0438, \u0441\u0442\u044f\u0433\u0430\u0439 \u0441\u0435.',
+  '\u0414\u043d\u0435\u0441 \u0437\u0430\u0434\u0430\u0447\u0438\u0442\u0435 \u0441\u0435 \u043f\u0440\u0435\u0434\u0430\u0432\u0430\u0442 \u043f\u043e \u0433\u0440\u0430\u0444\u0438\u043a.',
+  '\u041e\u0449\u0435 \u043c\u0430\u043b\u043a\u043e \u0438 \u043a\u0430\u0444\u0435\u0442\u043e \u043f\u0435\u0447\u0435\u043b\u0438.',
+  '\u0424\u043e\u043a\u0443\u0441\u044a\u0442 \u0442\u0438 \u0441\u0442\u043e\u0438 \u0434\u043e\u0431\u0440\u0435.',
+  '\u0414\u0430\u0432\u0430\u0439 \u0441\u043c\u0435\u043b\u043e, \u043c\u0430\u0448\u0438\u043d\u0430\u0442\u0430 \u0440\u0430\u0431\u043e\u0442\u0438.',
+  '\u041f\u043b\u0430\u043d\u044a\u0442 \u0438\u0437\u0433\u043b\u0435\u0436\u0434\u0430 \u043f\u043e\u0434 \u043a\u043e\u043d\u0442\u0440\u043e\u043b.',
+  '\u0420\u0430\u0431\u043e\u0442\u043d\u0438\u044f\u0442 \u0434\u0435\u043d \u043d\u044f\u043c\u0430 \u0448\u0430\u043d\u0441.',
+  '\u041c\u0430\u043b\u043a\u0438\u0442\u0435 \u0441\u0442\u044a\u043f\u043a\u0438 \u043f\u0440\u0430\u0432\u044f\u0442 \u0433\u043e\u043b\u0435\u043c\u0438\u044f \u0444\u0438\u043d\u0430\u043b.',
+  '\u0422\u0430\u0439\u043c\u0435\u0440\u044a\u0442 \u0442\u0435 \u0443\u0432\u0430\u0436\u0430\u0432\u0430.',
+  '\u041e\u0449\u0435 \u0435\u0434\u043d\u0430 \u0437\u0430\u0434\u0430\u0447\u0430 \u0438 \u0441\u0438 \u043b\u0435\u0433\u0435\u043d\u0434\u0430.',
+  '\u041f\u043e\u0447\u0438\u0432\u043a\u0430\u0442\u0430 \u0438\u0434\u0432\u0430, \u043d\u043e \u043f\u044a\u0440\u0432\u043e \u043f\u043e\u0431\u0435\u0434\u0430\u0442\u0430.',
+  '\u0414\u043d\u0435\u0441 \u0441\u0438 \u0432 \u0440\u0435\u0436\u0438\u043c \u043f\u0440\u043e\u0434\u0443\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442.',
+  '\u0412\u0441\u0438\u0447\u043a\u043e \u0432\u0430\u0436\u043d\u043e \u0435 \u043d\u0430 \u0435\u0434\u0438\u043d \u043a\u043b\u0438\u043a.',
+  '\u041a\u0440\u0430\u044f\u0442 \u043d\u0430 \u0434\u0435\u043d\u044f \u0441\u0435 \u0432\u0438\u0436\u0434\u0430.',
+  '\u0414\u043e\u0431\u0440\u0430 \u0440\u0430\u0431\u043e\u0442\u0430, \u043f\u0440\u043e\u0434\u044a\u043b\u0436\u0430\u0432\u0430\u0439.',
+  '\u0421\u043f\u0438\u0441\u044a\u043a\u044a\u0442 \u0441\u044a\u0441 \u0437\u0430\u0434\u0430\u0447\u0438 \u0449\u0435 \u043e\u043b\u0435\u043a\u043d\u0435.',
+  '\u0418\u043c\u0430\u0448 \u0440\u0438\u0442\u044a\u043c.',
+  '\u0415\u043a\u0438\u043f\u044a\u0442 \u0440\u0430\u0437\u0447\u0438\u0442\u0430 \u043d\u0430 \u0442\u0435\u0431.',
+  '\u0414\u043d\u0435\u0441 \u043d\u0435\u0449\u0430\u0442\u0430 \u0441\u0435 \u043f\u043e\u0434\u0440\u0435\u0436\u0434\u0430\u0442.',
+  '\u041e\u0449\u0435 \u043c\u0430\u043b\u043a\u043e \u0438 \u043e\u0442\u0447\u0435\u0442\u044a\u0442 \u0449\u0435 \u043f\u0435\u0435.',
+  '\u0422\u0438 \u043a\u0430\u0440\u0430\u0448 \u043f\u0440\u043e\u0435\u043a\u0442\u0430 \u043d\u0430\u043f\u0440\u0435\u0434.',
+  '\u0421\u043f\u043e\u043a\u043e\u0439\u043d\u043e, \u0437\u0430\u0434\u0430\u0447\u0438\u0442\u0435 \u043f\u0430\u0434\u0430\u0442 \u0435\u0434\u043d\u0430 \u043f\u043e \u0435\u0434\u043d\u0430.',
+  '\u041f\u0435\u0442 \u043c\u0438\u043d\u0443\u0442\u0438 \u0444\u043e\u043a\u0443\u0441 \u043f\u0440\u0430\u0432\u044f\u0442 \u0447\u0443\u0434\u0435\u0441\u0430.',
 ];
+
+export function HeaderRefreshMessage() {
+  const [message] = useState(() => refreshMessages[Math.floor(Math.random() * refreshMessages.length)]);
+
+  return <p className="max-w-[58vw] truncate text-base font-semibold text-white md:text-lg">{message}</p>;
+}
 
 export function UserMenu() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [message] = useState(() => refreshMessages[Math.floor(Math.random() * refreshMessages.length)]);
 
   useEffect(() => {
     async function fetchUser() {
@@ -65,11 +70,7 @@ export function UserMenu() {
     }
   }
 
-  if (isLoading) {
-    return null;
-  }
-
-  if (!user) {
+  if (isLoading || !user) {
     return null;
   }
 
@@ -77,11 +78,10 @@ export function UserMenu() {
     <div className="flex items-center gap-3">
       <div className="flex flex-col items-end">
         <p className="text-sm font-semibold text-white">{user.email}</p>
-        <p className="max-w-64 truncate text-xs text-cyan-100/80">{message}</p>
       </div>
       <button
         onClick={handleLogout}
-        className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 transition hover:bg-rose-500/10 hover:text-rose-100 hover:border-rose-400/20"
+        className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 transition hover:border-rose-400/20 hover:bg-rose-500/10 hover:text-rose-100"
       >
         Logout
       </button>

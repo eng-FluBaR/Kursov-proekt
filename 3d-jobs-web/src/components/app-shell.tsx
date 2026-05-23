@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import type { AuthUser } from '@/lib/auth-session';
 import { ProjectDot } from './workspace-ui';
-import { UserMenu } from './user-menu';
+import { HeaderRefreshMessage, UserMenu } from './user-menu';
 
 const desktopNav = [
   { href: '/analytics', label: 'Analytics' },
@@ -75,7 +75,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const showAdminNav = user?.role === 'admin';
 
   return (
-    <div className={`min-h-screen ${theme === 'light' ? 'bg-slate-100' : 'bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.12),_transparent_24%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.14),_transparent_20%),linear-gradient(180deg,#08111f_0%,#050b16_100%)]'}`}>
+    <div className={`min-h-screen ${theme === 'light' ? 'light-theme bg-slate-100' : 'bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.12),_transparent_24%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.14),_transparent_20%),linear-gradient(180deg,#08111f_0%,#050b16_100%)]'}`}>
       <div className="mx-auto flex min-h-screen max-w-[1640px]">
         <aside className="hidden w-80 flex-col border-r border-white/10 bg-slate-950/55 px-6 py-6 backdrop-blur xl:flex">
           <div className="rounded-[28px] border border-white/10 bg-white/6 p-5">
@@ -112,7 +112,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="flex min-h-screen flex-1 flex-col">
           <header className="sticky top-0 z-20 border-b border-white/10 bg-slate-950/70 px-4 py-4 backdrop-blur md:px-6 xl:px-8">
             <div className="flex items-center justify-between gap-4">
-              <div />
+              <div className="min-w-0 flex-1">
+                <HeaderRefreshMessage />
+              </div>
               <div className="flex items-center gap-3">
                 <div className="hidden items-center gap-3 md:flex">
                   <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">Workspace: 3D Jops planer</span>
