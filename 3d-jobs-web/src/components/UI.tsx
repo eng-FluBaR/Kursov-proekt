@@ -233,19 +233,40 @@ export function FileUploadInput({ jobId, onUploadStateChange }: { jobId?: string
     }
   }
 
+  const selectedFileNames = selectedFiles ? Array.from(selectedFiles).map((file) => file.name) : [];
+
   return (
     <div className="space-y-4">
       <div>
         <label className="mb-2 block text-sm font-semibold text-white">Upload files</label>
         <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-          <input
-            key={selectedFiles ? 'selected' : 'empty'}
-            type="file"
-            multiple
-            accept=".jpg,.jpeg,.png,.webp,.stl,.obj,.3mf,.step,.stp,.pdf,.txt,.doc,.docx"
-            onChange={(event) => setSelectedFiles(event.target.files)}
-            className="block w-full rounded-2xl border border-dashed border-white/20 bg-slate-900 px-4 py-3 text-sm text-slate-200 file:mr-4 file:rounded-xl file:border-0 file:bg-cyan-300 file:px-4 file:py-2 file:font-semibold file:text-slate-950"
-          />
+          <label className="block cursor-pointer rounded-2xl border border-dashed border-white/20 bg-slate-900 px-4 py-3 transition hover:border-cyan-300/40 hover:bg-slate-900/80">
+            <input
+              key={selectedFiles ? 'selected' : 'empty'}
+              type="file"
+              multiple
+              accept=".jpg,.jpeg,.png,.webp,.stl,.obj,.3mf,.step,.stp,.pdf,.txt,.doc,.docx"
+              onChange={(event) => setSelectedFiles(event.target.files)}
+              className="sr-only"
+            />
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <span className="inline-flex w-fit rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950">
+                Choose files
+              </span>
+              <span className="min-w-0 text-sm text-slate-300">
+                {selectedFileNames.length === 0 ? 'No files selected' : `${selectedFileNames.length} selected`}
+              </span>
+            </div>
+            {selectedFileNames.length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {selectedFileNames.map((fileName) => (
+                  <span key={fileName} className="max-w-full truncate rounded-lg border border-white/10 bg-slate-950/70 px-2 py-1 text-xs text-slate-200">
+                    {fileName}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </label>
           <button
             type="button"
             onClick={uploadFiles}
