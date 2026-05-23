@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { FileUploadInput } from './UI';
 
 type Job = {
   id: string;
@@ -26,14 +27,15 @@ export function JobDetailModal({ job, onClose, onStartTimer }: JobDetailModalPro
   const router = useRouter();
 
   if (!job) return null;
+  const currentJob = job;
 
   async function handleStartTimer() {
     setIsStarting(true);
     try {
       // Navigate to dashboard with job ID as query param
-      router.push(`/dashboard?jobId=${job.id}`);
+      router.push(`/dashboard?jobId=${currentJob.id}`);
       onClose();
-      onStartTimer(job.id);
+      onStartTimer(currentJob.id);
     } finally {
       setIsStarting(false);
     }
@@ -71,6 +73,11 @@ export function JobDetailModal({ job, onClose, onStartTimer }: JobDetailModalPro
             <p className="text-slate-300">{job.description}</p>
           </div>
         )}
+
+        {/* File Upload Section */}
+        <div className="mb-6 rounded-2xl border border-dashed border-white/10 p-6 bg-white/5">
+          <FileUploadInput />
+        </div>
 
         {/* Metadata */}
         <div className="mb-6 grid grid-cols-3 gap-4">

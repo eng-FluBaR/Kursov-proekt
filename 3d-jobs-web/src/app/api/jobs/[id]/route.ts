@@ -7,7 +7,7 @@ import { getDb } from '@/lib/db';
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const authUser = getRequestAuthUser(request);
   if (!authUser) {
@@ -28,7 +28,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'status is required' }, { status: 400 });
   }
 
-  const id = params.id;
+  const { id } = await params;
 
   try {
     const db = getDb();

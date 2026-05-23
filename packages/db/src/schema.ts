@@ -176,3 +176,41 @@ export const entryFilesRelations = relations(entryFiles, ({ one }) => ({
     references: [timeEntries.id],
   }),
 }));
+
+export const taskVisibilityPermissions = pgTable(
+  'task_visibility_permissions',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    grantorId: uuid('grantor_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    viewerId: uuid('viewer_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    subjectId: uuid('subject_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    grantorIdIdx: index('idx_permissions_grantor_id').on(table.grantorId),
+    viewerIdIdx: index('idx_permissions_viewer_id').on(table.viewerId),
+    subjectIdIdx: index('idx_permissions_subject_id').on(table.subjectId),
+    uniquePermissionIdx: index('idx_permissions_unique').on(table.viewerId, table.subjectId),
+  }),
+);
+
+export const taskVisibilityPermissionsRelations = relations(taskVisibilityPermissions, ({ one }) => ({
+  grantor: one(users, {
+    fields: [taskVisibilityPermissions.grantorId],
+    references: [users.id],
+  }),
+  viewer: one(users, {
+    fields: [taskVisibilityPermissions.viewerId],
+    references: [users.id],
+  }),
+  subject: one(users, {
+    fields: [taskVisibilityPermissions.subjectId],
+    references: [users.id],
+  }),
+}));

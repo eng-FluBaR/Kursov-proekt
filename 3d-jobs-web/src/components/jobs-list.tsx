@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { JobDetailModal } from './job-detail-modal';
 
 type Job = {
@@ -15,33 +15,52 @@ type Job = {
   createdAt: string;
 };
 
-export function JobsList() {
+type JobsListProps = {
+  refreshToken?: number;
+};
+
+export function JobsList({ refreshToken = 0 }: JobsListProps) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('active');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchJobs();
-  }, [status]);
-
-  async function fetchJobs() {
+  // Функцията е обвита в useCallback, за да работи правилно с useEffect
+  const fetchJobs = useCallback(async () => {
     try {
-      const url = `/api/jobs?status=${status}`;
+      setIsLoading(true);
+      setError('');
+      
+      // Увери се, че този път съвпада с твоя API
+      const url = `/api/mobile/time-entries?status=${status}`;
       const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error('Неуспешно зареждане на задачите.');
+      }
+
       const data = (await response.json()) as { jobs: Job[] };
+      console.log('Fetched jobs:', data.jobs); // Дебъг лог
       setJobs(data.jobs || []);
     } catch (err) {
       console.error('Failed to fetch jobs:', err);
-      setError('Failed to load jobs');
+      setError('Възникна грешка при зареждането на задачите.');
     } finally {
+      console.log('fetchJobs finished. isLoading set to false.');
       setIsLoading(false);
     }
-  }
+  }, [status]);
+
+  // Задейства се при първо зареждане, промяна на таб (status) или рефреш
+  useEffect(() => {
+    void Promise.resolve().then(fetchJobs);
+  }, [fetchJobs, refreshToken]);
 
   async function handleStatusChange(jobId: string, newStatus: string) {
     try {
+      setIsUpdating(jobId);
       const response = await fetch(`/api/jobs/${jobId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -49,30 +68,25 @@ export function JobsList() {
       });
 
       if (response.ok) {
-        fetchJobs();
+        // Оптимистично обновяваме локалния стейт за по-бърза реакция
+        setJobs(prev => prev.filter(job => job.id !== jobId));
       }
     } catch (err) {
       console.error('Failed to update job:', err);
+    } finally {
+      setIsUpdating(null);
     }
   }
 
   async function handleStartTimer(jobId: string) {
-    // This will be handled by parent component through callback
-    // For now, just close the modal and let the parent know
+    console.log('Starting timer for job:', jobId);
     setSelectedJob(null);
-  }
-
-  if (isLoading) {
-    return <div className="text-slate-300">Loading jobs...</div>;
-  }
-
-  if (error) {
-    return <div className="text-rose-400">{error}</div>;
   }
 
   return (
     <>
       <div className="space-y-4">
+        {/* Бутони за филтриране по статус */}
         <div className="flex gap-2">
           <button
             onClick={() => setStatus('active')}
@@ -106,7 +120,12 @@ export function JobsList() {
           </button>
         </div>
 
-        {jobs.length === 0 ? (
+        {/* Секция със състоянията на списъка */}
+        {isLoading ? (
+          <div className="text-slate-300 py-8 text-center text-sm">Loading jobs...</div>
+        ) : error ? (
+          <div className="text-rose-400 py-8 text-center text-sm">{error}</div>
+        ) : jobs.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-slate-950/60 px-6 py-8 text-center">
             <p className="text-slate-400">No {status} jobs yet.</p>
           </div>
@@ -115,20 +134,27 @@ export function JobsList() {
             {jobs.map((job) => (
               <div
                 key={job.id}
-                onClick={() => setSelectedJob(job)}
+                onClick={() => isUpdating !== job.id && setSelectedJob(job)}
                 className="rounded-2xl border border-white/10 bg-slate-950/60 p-4 cursor-pointer transition hover:bg-slate-900/80 hover:border-cyan-400/30"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <h4 className="font-semibold text-white">{job.title}</h4>
-                    <p className="mt-1 text-sm text-slate-400">
-                      {job.projectName}
-                      {job.taskTypeName && ` • ${job.taskTypeName}`}
-                    </p>
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      <span className="text-xs text-slate-400 bg-white/5 px-2 py-0.5 rounded">
+                        📁 {job.projectName}
+                      </span>
+                      {job.taskTypeName && (
+                        <span className="text-xs font-medium text-cyan-300 bg-cyan-400/10 px-2 py-0.5 rounded border border-cyan-400/20">
+                          🏷️ {job.taskTypeName}
+                        </span>
+                      )}
+                    </div>
                     {job.description && <p className="mt-2 text-sm text-slate-300">{job.description}</p>}
                   </div>
                   <select
                     value={job.status}
+                    disabled={isUpdating === job.id}
                     onChange={(e) => {
                       e.stopPropagation();
                       handleStatusChange(job.id, e.target.value);

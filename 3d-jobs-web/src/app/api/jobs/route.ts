@@ -1,9 +1,10 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 import { jobs, projects, taskTypes } from '@3d-jobs/db/src/schema';
 import { getRequestAuthUser } from '@/lib/auth-session';
 import { getDb } from '@/lib/db';
+import { getUserAccessibleTaskIds } from '@/lib/permissions';
 
 export async function POST(request: Request) {
   const authUser = getRequestAuthUser(request);
@@ -39,6 +40,19 @@ export async function POST(request: Request) {
   try {
     const db = getDb();
 
+    const [project] = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(and(eq(projects.id, projectId), eq(projects.userId, authUser.id)))
+      .limit(1);
+
+    if (!project) {
+      return NextResponse.json(
+        { error: 'Please select one of your own projects before creating a job.' },
+        { status: 400 }
+      );
+    }
+
     const [newJob] = await db
       .insert(jobs)
       .values({
@@ -51,7 +65,24 @@ export async function POST(request: Request) {
       })
       .returning();
 
-    return NextResponse.json({ job: newJob }, { status: 201 });
+    const [jobWithDetails] = await db
+      .select({
+        id: jobs.id,
+        projectId: jobs.projectId,
+        projectName: projects.name,
+        taskTypeId: jobs.taskTypeId,
+        taskTypeName: taskTypes.name,
+        title: jobs.title,
+        description: jobs.description,
+        status: jobs.status,
+        createdAt: jobs.createdAt,
+      })
+      .from(jobs)
+      .leftJoin(projects, eq(jobs.projectId, projects.id))
+      .leftJoin(taskTypes, eq(jobs.taskTypeId, taskTypes.id))
+      .where(eq(jobs.id, newJob.id));
+
+    return NextResponse.json({ job: jobWithDetails }, { status: 201 });
   } catch (error) {
     console.error('Failed to create job:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to create job';
@@ -74,7 +105,24 @@ export async function GET(request: Request) {
     const projectId = url.searchParams.get('projectId');
 
     const db = getDb();
-    let query = db
+    
+    // Users should always see their own tasks
+    // Additionally, they can see tasks from users who have shared tasks with them
+    const allowedUserIds = [authUser.id, ...(await getUserAccessibleTaskIds(authUser.id))];
+
+    // Build conditions array
+    const conditions = [inArray(jobs.userId, allowedUserIds)];
+    
+    if (status) {
+      conditions.push(eq(jobs.status, status));
+    }
+
+    if (projectId) {
+      conditions.push(eq(jobs.projectId, projectId));
+    }
+
+    // Execute the query
+    const jobsList = await db
       .select({
         id: jobs.id,
         projectId: jobs.projectId,
@@ -84,28 +132,22 @@ export async function GET(request: Request) {
         title: jobs.title,
         description: jobs.description,
         status: jobs.status,
+        userId: jobs.userId,
         createdAt: jobs.createdAt,
       })
       .from(jobs)
-      .innerJoin(projects, eq(jobs.projectId, projects.id))
+      .leftJoin(projects, eq(jobs.projectId, projects.id))
       .leftJoin(taskTypes, eq(jobs.taskTypeId, taskTypes.id))
-      .where(eq(jobs.userId, authUser.id));
-
-    if (status) {
-      query = query.where(eq(jobs.status, status));
-    }
-
-    if (projectId) {
-      query = query.where(eq(jobs.projectId, projectId));
-    }
-
-    const jobsList = await query.orderBy(jobs.createdAt);
+      .where(and(...conditions))
+      .orderBy(jobs.createdAt);
 
     return NextResponse.json({ jobs: jobsList });
   } catch (error) {
     console.error('Failed to fetch jobs:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch jobs';
+    const errorStack = error instanceof Error ? error.stack : undefined;
     return NextResponse.json(
-      { error: 'Failed to fetch jobs' },
+      { error: errorMessage, stack: errorStack },
       { status: 500 }
     );
   }

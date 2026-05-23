@@ -21,12 +21,25 @@ export default function DashboardScreen() {
     setIsLoading(true);
 
     try {
-      const [projectsResponse, entriesResponse] = await Promise.all([
+      const [projectsResponse, jobsResponse] = await Promise.all([
         apiRequest<{ projects: Project[] }>('/api/mobile/projects', { token }),
-        apiRequest<{ timeEntries: TimeEntry[] }>('/api/mobile/time-entries', { token }),
+        apiRequest<{ jobs: any[] }>('/api/jobs', { token }),
       ]);
       setProjects(projectsResponse.projects);
-      setEntries(entriesResponse.timeEntries);
+      // Convert jobs to TimeEntry format for compatibility
+      const convertedEntries = jobsResponse.jobs.map(job => ({
+        id: job.id,
+        projectId: job.projectId,
+        projectName: job.projectName,
+        projectColor: projectsResponse.projects.find(p => p.id === job.projectId)?.color || '#3B82F6',
+        taskTypeId: job.taskTypeId,
+        taskTypeName: job.taskTypeName,
+        startedAt: job.createdAt,
+        endedAt: null,
+        durationMinutes: null,
+        note: job.description,
+      }));
+      setEntries(convertedEntries);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Could not load dashboard.');
     } finally {

@@ -37,11 +37,18 @@ export function TimeEntriesList({ projectId }: { projectId?: string }) {
   useEffect(() => {
     async function fetchEntries() {
       try {
-        let url = '/api/time-entries';
+        setIsLoading(true);
+        // Използваме мобилния endpoint, тъй като той съдържа логиката за задачите (zadachite)
+        let url = '/api/mobile/time-entries'; 
         if (projectId) {
           url += `?projectId=${projectId}`;
         }
         const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error(`Server status: ${response.status}`);
+        }
+        
         const data = (await response.json()) as { entries: TimeEntry[] };
         setEntries(data.entries || []);
       } catch (err) {

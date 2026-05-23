@@ -16,6 +16,7 @@ type Job = {
   taskTypeName: string | null;
   title: string;
   status: string;
+  totalDurationMinutes?: number; // Идва от бекенда
 };
 
 type TimeEntry = {
@@ -35,7 +36,7 @@ function formatTime(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  return [hours, minutes, seconds].map((part) => String(part).padStart(2, '0')).join(':');
+  return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
 }
 
 export function DashboardTimer({ projects, taskTypes }: { projects: Option[]; taskTypes: Option[] }) {
@@ -53,7 +54,7 @@ export function DashboardTimer({ projects, taskTypes }: { projects: Option[]; ta
      async function fetchData() {
        try {
          // Fetch active jobs
-         const jobsResponse = await fetch('/api/jobs?status=active');
+         const jobsResponse = await fetch('/api/mobile/time-entries?status=active');
          const jobsData = (await jobsResponse.json()) as { jobs: Job[] };
          setActiveJobs(jobsData.jobs || []);
          
@@ -298,12 +299,14 @@ export function DashboardTimer({ projects, taskTypes }: { projects: Option[]; ta
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-            <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Elapsed</p>
-            <p className="mt-2 text-2xl font-semibold text-white tabular-nums">{formatTime(elapsed)}</p>
+            <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Session Time</p>
+            <p className="mt-2 text-xl font-semibold text-white tabular-nums">{formatTime(elapsed)}</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-            <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Status</p>
-            <p className="mt-2 text-2xl font-semibold text-white">{running ? 'Tracking' : 'Idle'}</p>
+            <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Total for Job</p>
+            <p className="mt-2 text-xl font-semibold text-cyan-300">
+              {selectedJob?.totalDurationMinutes ? `${selectedJob.totalDurationMinutes}m` : '0m'}
+            </p>
           </div>
         </div>
       </div>
