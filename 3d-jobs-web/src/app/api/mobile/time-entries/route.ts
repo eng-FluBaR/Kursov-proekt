@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, or } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
-import { jobVisibilityPermissions, jobs, projects, taskTypes, timeEntries } from '@3d-jobs/db/src/schema';
+import { jobVisibilityPermissions, jobs, projects, taskTypes, timeEntries, users } from '@3d-jobs/db/src/schema';
 import { getRequestAuthUser } from '@/lib/auth-session';
 import { getDb } from '@/lib/db';
 import { getUserSharedJobIds } from '@/lib/job-permissions';
@@ -197,25 +197,38 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const status = url.searchParams.get('status');
   const projectId = url.searchParams.get('projectId');
+  const ownOnly = url.searchParams.get('ownOnly') === 'true';
+  const sharedOnly = url.searchParams.get('sharedOnly') === 'true';
   const db = getDb();
 
   if (status) {
     const conditions = [];
+    const sharedJobIds = authUser.role === 'admin' ? [] : await getUserSharedJobIds(authUser.id);
+
     if (authUser.role === 'admin') {
       const userId = url.searchParams.get('userId');
       if (userId) {
         conditions.push(eq(jobs.userId, userId));
       }
+    } else if (sharedOnly) {
+      if (sharedJobIds.length === 0) {
+        return NextResponse.json({ jobs: [] });
+      }
+      conditions.push(inArray(jobs.id, sharedJobIds));
+    } else if (ownOnly) {
+      conditions.push(eq(jobs.userId, authUser.id));
     } else {
       const allowedUserIds = Array.from(new Set([authUser.id, ...(await getUserAccessibleTaskIds(authUser.id))]));
-      const sharedJobIds = await getUserSharedJobIds(authUser.id);
       const visibilityCondition = sharedJobIds.length > 0
         ? or(inArray(jobs.userId, allowedUserIds), inArray(jobs.id, sharedJobIds))
         : inArray(jobs.userId, allowedUserIds);
       conditions.push(visibilityCondition);
     }
 
-    conditions.push(eq(jobs.status, status));
+    if (status !== 'all') {
+      conditions.push(eq(jobs.status, status));
+    }
+
     if (projectId) {
       conditions.push(eq(jobs.projectId, projectId));
     }
@@ -231,15 +244,22 @@ export async function GET(request: Request) {
         description: jobs.description,
         status: jobs.status,
         userId: jobs.userId,
+        ownerEmail: users.email,
         createdAt: jobs.createdAt,
       })
       .from(jobs)
+      .leftJoin(users, eq(users.id, jobs.userId))
       .leftJoin(projects, eq(jobs.projectId, projects.id))
       .leftJoin(taskTypes, eq(jobs.taskTypeId, taskTypes.id))
       .where(and(...conditions))
       .orderBy(desc(jobs.createdAt));
 
-    return NextResponse.json({ jobs: jobsList });
+    return NextResponse.json({
+      jobs: jobsList.map((job) => ({
+        ...job,
+        isShared: job.userId !== authUser.id,
+      })),
+    });
   }
 
   const entryConditions = [eq(timeEntries.userId, authUser.id)];

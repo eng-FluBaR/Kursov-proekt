@@ -76,7 +76,7 @@ export default function JobsPage() {
             title="Your task list"
             description="View and manage the tasks that are ready to work on now."
           />
-          <JobsList refreshToken={refreshToken} initialStatus="active" lockStatus />
+          <JobsList refreshToken={refreshToken} initialStatus="active" lockStatus ownOnly />
         </Panel>
 
         <Panel className="p-6">
@@ -95,7 +95,16 @@ export default function JobsPage() {
           title="Paused tasks"
           description="Paused tasks stay here so the main task list remains clean."
         />
-        <JobsList refreshToken={refreshToken} initialStatus="paused" lockStatus />
+        <JobsList refreshToken={refreshToken} initialStatus="paused" lockStatus ownOnly />
+      </Panel>
+
+      <Panel className="p-6">
+        <SectionHeading
+          eyebrow="Shared"
+          title="Shared tasks"
+          description="Tasks shared with you by other users are shown separately from your own task list."
+        />
+        <JobsList refreshToken={refreshToken} initialStatus="all" lockStatus sharedOnly readOnlyStatus />
       </Panel>
     </div>
   );
