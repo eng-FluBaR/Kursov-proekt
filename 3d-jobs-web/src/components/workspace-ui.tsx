@@ -1,8 +1,8 @@
-import type { ReactNode } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 import Link from 'next/link';
 
-export function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <section className={`rounded-3xl border border-white/10 bg-white/6 shadow-[0_24px_80px_rgba(15,23,42,0.35)] backdrop-blur ${className}`}>{children}</section>;
+export function Panel({ children, className = '', ...props }: HTMLAttributes<HTMLElement> & { children: ReactNode }) {
+  return <section {...props} className={`rounded-3xl border border-white/10 bg-white/6 shadow-[0_24px_80px_rgba(15,23,42,0.35)] backdrop-blur ${className}`}>{children}</section>;
 }
 
 export function SectionHeading({

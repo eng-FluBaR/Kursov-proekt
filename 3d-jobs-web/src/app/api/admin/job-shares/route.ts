@@ -1,4 +1,4 @@
-import { eq, desc } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 import { jobVisibilityPermissions, jobs, projects, taskTypes, users } from '@3d-jobs/db/src/schema';
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     return response;
   }
 
-  let body: { viewerId?: unknown; jobId?: unknown };
+  let body: { viewerId?: unknown; viewerIds?: unknown; jobId?: unknown };
 
   try {
     body = await request.json();
@@ -62,30 +62,55 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const viewerId = typeof body.viewerId === 'string' ? body.viewerId : '';
+  const viewerIds = Array.isArray(body.viewerIds)
+    ? body.viewerIds.filter((value): value is string => typeof value === 'string')
+    : typeof body.viewerId === 'string'
+      ? [body.viewerId]
+      : [];
   const jobId = typeof body.jobId === 'string' ? body.jobId : '';
 
-  if (!viewerId || !jobId) {
-    return NextResponse.json({ error: 'viewerId and jobId are required' }, { status: 400 });
+  if (viewerIds.length === 0 || !jobId) {
+    return NextResponse.json({ error: 'viewerIds and jobId are required' }, { status: 400 });
   }
 
   try {
     const db = getDb();
-    const [[viewer], [job]] = await Promise.all([
-      db.select({ id: users.id }).from(users).where(eq(users.id, viewerId)).limit(1),
-      db.select({ id: jobs.id, userId: jobs.userId }).from(jobs).where(eq(jobs.id, jobId)).limit(1),
-    ]);
+    const [job] = await db
+      .select({ id: jobs.id, userId: jobs.userId })
+      .from(jobs)
+      .where(eq(jobs.id, jobId))
+      .limit(1);
 
-    if (!viewer || !job) {
-      return NextResponse.json({ error: 'User or job not found' }, { status: 404 });
+    if (!job) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    if (job.userId === viewerId) {
-      return NextResponse.json({ error: 'Users already see their own jobs.' }, { status: 400 });
+    const results = [];
+
+    for (const viewerId of Array.from(new Set(viewerIds))) {
+      const [viewer] = await db.select({ id: users.id }).from(users).where(eq(users.id, viewerId)).limit(1);
+
+      if (!viewer) {
+        results.push({ viewerId, status: 'missing-user' });
+        continue;
+      }
+
+      if (job.userId === viewerId) {
+        results.push({ viewerId, status: 'owner-skipped' });
+        continue;
+      }
+
+      try {
+        const permission = await grantJobPermission(admin!.id, viewerId, jobId);
+        results.push({ viewerId, status: 'granted', permission });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to grant permission';
+        results.push({ viewerId, status: message === 'Permission already exists' ? 'already-shared' : 'error', error: message });
+      }
     }
 
-    const permission = await grantJobPermission(admin!.id, viewerId, jobId);
-    return NextResponse.json({ permission }, { status: 201 });
+    const granted = results.filter((result) => result.status === 'granted');
+    return NextResponse.json({ results }, { status: granted.length > 0 ? 201 : 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to grant permission';
     return NextResponse.json({ error: message }, { status: 400 });

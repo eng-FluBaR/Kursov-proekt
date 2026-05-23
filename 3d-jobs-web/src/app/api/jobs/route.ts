@@ -108,18 +108,19 @@ export async function GET(request: Request) {
 
     const db = getDb();
     
-    // Users should always see their own tasks
-    // Additionally, they can see tasks from users who have shared tasks with them
-    const allowedUserIds = ownOnly
-      ? [authUser.id]
-      : Array.from(new Set([authUser.id, ...(await getUserAccessibleTaskIds(authUser.id))]));
-    const sharedJobIds = ownOnly ? [] : await getUserSharedJobIds(authUser.id);
+    const conditions = [];
 
-    // Build conditions array
-    const visibilityCondition = sharedJobIds.length > 0
-      ? or(inArray(jobs.userId, allowedUserIds), inArray(jobs.id, sharedJobIds))
-      : inArray(jobs.userId, allowedUserIds);
-    const conditions = [visibilityCondition];
+    if (ownOnly || authUser.role !== 'admin') {
+      const allowedUserIds = ownOnly
+        ? [authUser.id]
+        : Array.from(new Set([authUser.id, ...(await getUserAccessibleTaskIds(authUser.id))]));
+      const sharedJobIds = ownOnly ? [] : await getUserSharedJobIds(authUser.id);
+
+      const visibilityCondition = sharedJobIds.length > 0
+        ? or(inArray(jobs.userId, allowedUserIds), inArray(jobs.id, sharedJobIds))
+        : inArray(jobs.userId, allowedUserIds);
+      conditions.push(visibilityCondition);
+    }
     
     if (status && status !== 'all') {
       conditions.push(eq(jobs.status, status));
@@ -146,7 +147,7 @@ export async function GET(request: Request) {
       .from(jobs)
       .leftJoin(projects, eq(jobs.projectId, projects.id))
       .leftJoin(taskTypes, eq(jobs.taskTypeId, taskTypes.id))
-      .where(and(...conditions))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(jobs.createdAt);
 
     return NextResponse.json({ jobs: jobsList });
