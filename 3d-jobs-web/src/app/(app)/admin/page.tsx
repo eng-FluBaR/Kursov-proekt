@@ -55,31 +55,44 @@ export default function AdminPage() {
   const [permissions, setPermissions] = useState<SharePermission[]>([]);
   const [timeByType, setTimeByType] = useState<TimeByType[]>([]);
   const [totals, setTotals] = useState({ users: 0, projects: 0, jobs: 0, files: 0, sessions: 0 });
-  const [selectedJobId, setSelectedJobId] = useState('');
+  const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
   const [selectedViewerIds, setSelectedViewerIds] = useState<string[]>([]);
   const [newPasswords, setNewPasswords] = useState<Record<string, string>>({});
   const [status, setStatus] = useState('');
   const [shareWarning, setShareWarning] = useState('');
   const [userSearch, setUserSearch] = useState('');
+  const [roleSearch, setRoleSearch] = useState('');
   const [taskSearch, setTaskSearch] = useState('');
   const [shareTaskSearch, setShareTaskSearch] = useState('');
   const [shareUserSearch, setShareUserSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  const selectedJob = useMemo(
-    () => jobs.find((job) => job.id === selectedJobId) ?? null,
-    [jobs, selectedJobId],
+  const selectedJobs = useMemo(
+    () => jobs.filter((job) => selectedJobIds.includes(job.id)),
+    [jobs, selectedJobIds],
   );
 
   const selectedJobPermissions = useMemo(
-    () => permissions.filter((permission) => permission.jobId === selectedJobId),
-    [permissions, selectedJobId],
+    () => permissions.filter((permission) => selectedJobIds.includes(permission.jobId)),
+    [permissions, selectedJobIds],
   );
 
   const shareTargets = useMemo(() => {
-    const alreadyShared = new Set(selectedJobPermissions.map((permission) => permission.viewerId));
-    return shareUsers.filter((user) => user.id !== selectedJob?.ownerId && !alreadyShared.has(user.id));
-  }, [selectedJob?.ownerId, selectedJobPermissions, shareUsers]);
+    const selectedOwnerIds = new Set(selectedJobs.map((job) => job.ownerId));
+    const alreadySharedByUser = new Map<string, number>();
+
+    for (const permission of selectedJobPermissions) {
+      alreadySharedByUser.set(permission.viewerId, (alreadySharedByUser.get(permission.viewerId) ?? 0) + 1);
+    }
+
+    return shareUsers.filter((user) => {
+      if (selectedJobIds.length === 0) {
+        return true;
+      }
+
+      return !selectedOwnerIds.has(user.id) || selectedJobs.some((job) => job.ownerId !== user.id && (alreadySharedByUser.get(user.id) ?? 0) < selectedJobIds.length);
+    });
+  }, [selectedJobIds.length, selectedJobPermissions, selectedJobs, shareUsers]);
 
   const filteredUsers = useMemo(() => {
     const search = userSearch.trim().toLowerCase();
@@ -104,6 +117,17 @@ export default function AdminPage() {
     );
   }, [jobs, taskSearch]);
 
+  const filteredRoleUsers = useMemo(() => {
+    const search = roleSearch.trim().toLowerCase();
+    if (!search) {
+      return users;
+    }
+
+    return users.filter((user) =>
+      [user.email, user.role, String(user.jobCount), String(user.sessionCount)].some((value) => value.toLowerCase().includes(search)),
+    );
+  }, [roleSearch, users]);
+
   const filteredShareJobs = useMemo(() => {
     const search = shareTaskSearch.trim().toLowerCase();
     const matchingJobs = search
@@ -113,12 +137,8 @@ export default function AdminPage() {
         )
       : jobs;
 
-    if (selectedJob && !matchingJobs.some((job) => job.id === selectedJob.id)) {
-      return [selectedJob, ...matchingJobs];
-    }
-
     return matchingJobs;
-  }, [jobs, selectedJob, shareTaskSearch]);
+  }, [jobs, shareTaskSearch]);
 
   const filteredShareTargets = useMemo(() => {
     const search = shareUserSearch.trim().toLowerCase();
@@ -165,7 +185,7 @@ export default function AdminPage() {
       setJobs(sharesData.jobs);
       setPermissions(sharesData.permissions);
       setShareWarning(sharesData.warning ?? '');
-      setSelectedJobId((current) => current || sharesData.jobs[0]?.id || '');
+      setSelectedJobIds((current) => current.length > 0 ? current : []);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Admin data failed to load.');
     } finally {
@@ -217,31 +237,42 @@ export default function AdminPage() {
   }
 
   async function grantAccess() {
-    if (!selectedJobId || selectedViewerIds.length === 0) {
-      setStatus('Choose one task and at least one user to share it.');
+    if (selectedJobIds.length === 0 || selectedViewerIds.length === 0) {
+      setStatus('Choose at least one task and at least one user to share it.');
       return;
     }
 
-    const response = await fetch('/api/admin/job-shares', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId: selectedJobId, viewerIds: selectedViewerIds }),
-    });
-    const data = (await response.json()) as {
-      error?: string;
-      results?: Array<{ status: string }>;
-    };
+    const responses = await Promise.all(selectedJobIds.map(async (jobId) => {
+      const response = await fetch('/api/admin/job-shares', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, viewerIds: selectedViewerIds }),
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        results?: Array<{ status: string }>;
+      };
 
-    if (!response.ok) {
-      setStatus(data.error ?? 'Could not share task.');
+      return { ok: response.ok, data };
+    }));
+
+    const failed = responses.find((result) => !result.ok);
+    if (failed) {
+      setStatus(failed.data.error ?? 'Could not share selected tasks.');
       return;
     }
 
-    const granted = data.results?.filter((result) => result.status === 'granted').length ?? 0;
-    const skipped = data.results?.length ? data.results.length - granted : 0;
-    setStatus(`Task shared with ${granted} user${granted === 1 ? '' : 's'}${skipped > 0 ? `, ${skipped} skipped` : ''}.`);
+    const granted = responses.reduce((sum, result) => sum + (result.data.results?.filter((item) => item.status === 'granted').length ?? 0), 0);
+    const total = responses.reduce((sum, result) => sum + (result.data.results?.length ?? 0), 0);
+    const skipped = total - granted;
+    setStatus(`Shared ${selectedJobIds.length} task${selectedJobIds.length === 1 ? '' : 's'} with ${selectedViewerIds.length} selected user${selectedViewerIds.length === 1 ? '' : 's'}: ${granted} granted${skipped > 0 ? `, ${skipped} skipped` : ''}.`);
+    setSelectedJobIds([]);
     setSelectedViewerIds([]);
     await loadAdminData();
+  }
+
+  function toggleShareTask(jobId: string) {
+    setSelectedJobIds((current) => current.includes(jobId) ? current.filter((id) => id !== jobId) : [...current, jobId]);
   }
 
   function toggleViewer(userId: string) {
@@ -317,6 +348,19 @@ export default function AdminPage() {
 
       <Panel className="p-6">
         <SectionHeading eyebrow="Accounts" title="Security and roles" description="Change roles, reset forgotten passwords, or remove accounts." />
+        <div className="mb-5">
+          <label className="block space-y-2">
+            <span className="text-xs uppercase tracking-[0.22em] text-slate-400">Search role table</span>
+            <input
+              type="search"
+              value={roleSearch}
+              onChange={(event) => setRoleSearch(event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/40"
+              placeholder="Search users before changing roles or passwords..."
+            />
+          </label>
+          <p className="mt-2 text-xs text-slate-400">Showing {filteredRoleUsers.length} of {users.length} users</p>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[920px] border-separate border-spacing-y-3">
             <thead>
@@ -330,7 +374,7 @@ export default function AdminPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((user) => (
+              {filteredRoleUsers.map((user) => (
                 <tr key={user.id} className="bg-slate-950/60 text-sm text-slate-200">
                   <td className="rounded-l-2xl px-4 py-4 font-medium text-white">{user.email}</td>
                   <td className="px-4 py-4">
@@ -413,57 +457,54 @@ export default function AdminPage() {
       </Panel>
 
       <Panel id="share-task" className="scroll-mt-24 p-6">
-        <SectionHeading eyebrow="Share task visibility" title="Choose one task, then users" description="The selected users will see and work on this task. Their tracked time stays separate per user." />
+        <SectionHeading eyebrow="Share task visibility" title="Select tasks and users" description="Mark one or more tasks and one or more users. Their tracked time stays separate per user." />
         {shareWarning ? <div className="mb-4 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">{shareWarning}</div> : null}
-        <div className="grid gap-5 xl:grid-cols-[1.1fr_1fr]">
-          <div className="space-y-4">
-            <label className="block space-y-2">
-              <span className="text-xs uppercase tracking-[0.22em] text-slate-400">Task to share</span>
+        <div className="grid gap-5 xl:grid-cols-2">
+          <div className="rounded-2xl border border-white/10 bg-slate-900 p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Tasks to share</p>
+              <button type="button" onClick={() => setSelectedJobIds([])} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white">Clear</button>
+            </div>
+            <div className="space-y-3">
               <input
                 type="search"
                 value={shareTaskSearch}
                 onChange={(event) => setShareTaskSearch(event.target.value)}
                 className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-sm text-white outline-none focus:border-cyan-300/40"
-                placeholder="Filter tasks before selecting..."
+                placeholder="Search and mark tasks..."
               />
-              <select
-                value={selectedJobId}
-                onChange={(event) => {
-                  setSelectedJobId(event.target.value);
-                  setSelectedViewerIds([]);
-                }}
-                className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white outline-none"
-              >
-                {filteredShareJobs.map((job) => (
-                  <option key={job.id} value={job.id}>
-                    {job.title} | owner: {job.ownerEmail ?? 'unknown'} | {job.status}
-                  </option>
-                ))}
-              </select>
               <span className="text-xs text-slate-400">Showing {filteredShareJobs.length} of {jobs.length} tasks</span>
-            </label>
-
-            {selectedJob ? (
-              <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-4 text-sm text-slate-200">
-                <p className="font-semibold text-white">{selectedJob.title}</p>
-                <p className="mt-1">Owner: {selectedJob.ownerEmail ?? 'Unknown user'}</p>
-                <p className="mt-1">Project: {selectedJob.projectName ?? 'No project'} | Type: {selectedJob.taskTypeName ?? 'No task type'}</p>
-              </div>
-            ) : null}
-
-            <button onClick={grantAccess} className="rounded-xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950">
-              Share with {selectedViewerIds.length} selected
-            </button>
+            </div>
+            <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
+              {filteredShareJobs.length === 0 ? <p className="text-sm text-slate-400">No tasks match this search.</p> : null}
+              {filteredShareJobs.map((job) => (
+                <label key={job.id} className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border border-white/10 bg-slate-950/60 px-3 py-3 text-sm text-slate-200 hover:border-cyan-300/30">
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold text-white">{job.title}</span>
+                    <span className="mt-1 block truncate text-xs text-slate-400">{job.ownerEmail ?? 'unknown owner'} | {job.projectName ?? 'No project'} | {job.status}</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={selectedJobIds.includes(job.id)}
+                    onChange={() => toggleShareTask(job.id)}
+                    className="mt-1 h-4 w-4 accent-cyan-300"
+                  />
+                </label>
+              ))}
+            </div>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-slate-900 p-4">
-            <p className="mb-3 text-xs uppercase tracking-[0.22em] text-slate-400">Users who can receive access</p>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Users to receive access</p>
+              <button type="button" onClick={() => setSelectedViewerIds([])} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white">Clear</button>
+            </div>
             <input
               type="search"
               value={shareUserSearch}
               onChange={(event) => setShareUserSearch(event.target.value)}
               className="mb-3 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 py-3 text-sm text-white outline-none focus:border-cyan-300/40"
-              placeholder="Search users to share with..."
+              placeholder="Search and mark users..."
             />
             <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
               {filteredShareTargets.length === 0 ? <p className="text-sm text-slate-400">No users match this search or everyone already has access.</p> : null}
@@ -479,6 +520,33 @@ export default function AdminPage() {
                 </label>
               ))}
             </div>
+          </div>
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-4 text-sm text-slate-200">
+          <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-start">
+            <div>
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Selected tasks</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {selectedJobs.length === 0 ? <span className="text-slate-400">No tasks selected.</span> : null}
+                {selectedJobs.map((job) => (
+                  <span key={job.id} className="rounded-full border border-white/10 bg-slate-950/60 px-3 py-1 text-xs text-white">{job.title}</span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Selected users</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {selectedViewerIds.length === 0 ? <span className="text-slate-400">No users selected.</span> : null}
+                {selectedViewerIds.map((viewerId) => {
+                  const user = shareUsers.find((item) => item.id === viewerId);
+                  return <span key={viewerId} className="rounded-full border border-white/10 bg-slate-950/60 px-3 py-1 text-xs text-white">{user?.email ?? 'Unknown user'}</span>;
+                })}
+              </div>
+            </div>
+            <button onClick={grantAccess} className="rounded-xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950">
+              Share {selectedJobIds.length} task{selectedJobIds.length === 1 ? '' : 's'} with {selectedViewerIds.length} user{selectedViewerIds.length === 1 ? '' : 's'}
+            </button>
           </div>
         </div>
 
