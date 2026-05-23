@@ -17,13 +17,15 @@ type Job = {
 
 type JobsListProps = {
   refreshToken?: number;
+  initialStatus?: string;
+  lockStatus?: boolean;
 };
 
-export function JobsList({ refreshToken = 0 }: JobsListProps) {
+export function JobsList({ refreshToken = 0, initialStatus = 'active', lockStatus = false }: JobsListProps) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [status, setStatus] = useState('active');
+  const [status, setStatus] = useState(initialStatus);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
@@ -92,7 +94,7 @@ export function JobsList({ refreshToken = 0 }: JobsListProps) {
     <>
       <div className="space-y-4">
         {/* Бутони за филтриране по статус */}
-        <div className="flex gap-2">
+        <div className={`flex gap-2 ${lockStatus ? 'hidden' : ''}`}>
           <button
             onClick={() => setStatus('active')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${

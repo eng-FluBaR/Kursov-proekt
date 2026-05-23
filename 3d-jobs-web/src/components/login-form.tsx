@@ -33,7 +33,7 @@ export function LoginForm() {
         return;
       }
 
-      router.push('/dashboard');
+      router.push('/analytics');
       router.refresh();
     } catch {
       setError('Login request failed. Check that the web server is running.');

@@ -28,7 +28,7 @@ export function RegisterForm() {
         return;
       }
 
-      router.push('/dashboard');
+      router.push('/analytics');
       router.refresh();
     } catch {
       setError('Registration request failed. Check that the web server is running.');

@@ -70,8 +70,7 @@ export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: Job
     const activeJob = currentJob;
     setIsStarting(true);
     try {
-      // Navigate to dashboard with job ID as query param
-      router.push(`/dashboard?jobId=${activeJob.id}`);
+      router.push(`/jobs?jobId=${activeJob.id}`);
       onClose();
       onStartTimer(activeJob.id);
     } finally {

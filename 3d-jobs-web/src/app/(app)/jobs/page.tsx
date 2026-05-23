@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Panel, SectionHeading } from '@/components/workspace-ui';
 import { NewJobForm } from '@/components/new-job-form';
 import { JobsList } from '@/components/jobs-list';
+import { DashboardTimer } from '@/components/dashboard-timer';
 
 type ProjectResponse = {
   projects: Array<{ id: string; name: string }>;
@@ -61,6 +62,12 @@ export default function JobsPage() {
         title="Manage your tasks"
         description="Create tasks by name and type, track their progress, and start timers directly from here."
       />
+
+      <Panel className="p-6">
+        <Suspense fallback={<div className="text-slate-300">Loading timer...</div>}>
+          <DashboardTimer projects={[]} taskTypes={[]} />
+        </Suspense>
+      </Panel>
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <Panel className="p-6">

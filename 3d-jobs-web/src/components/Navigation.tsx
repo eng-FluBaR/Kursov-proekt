@@ -9,20 +9,18 @@ interface SidebarProps {
 
 const navItems = [
   { href: '/', label: 'Landing' },
-  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/analytics', label: 'Analytics' },
   { href: '/log', label: 'Log Entry' },
   { href: '/calendar', label: 'Calendar' },
-  { href: '/projects', label: 'Projects' },
-  { href: '/analytics', label: 'Analytics' },
+  { href: '/projects', label: 'Completed tasks' },
   { href: '/admin', label: 'Admin' },
   { href: '/settings', label: 'Settings' },
 ];
 
 const tabItems = [
-  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/analytics', label: 'Home' },
   { href: '/log', label: 'Log' },
-  { href: '/projects', label: 'Projects' },
-  { href: '/analytics', label: 'Analytics' },
+  { href: '/projects', label: 'Done' },
   { href: '/settings', label: 'Settings' },
 ];
 

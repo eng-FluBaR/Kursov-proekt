@@ -10,30 +10,24 @@ import { ProjectDot } from './workspace-ui';
 import { UserMenu } from './user-menu';
 
 const desktopNav = [
-  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/analytics', label: 'Analytics' },
   { href: '/jobs', label: 'Jobs' },
   { href: '/calendar', label: 'Calendar' },
   { href: '/log', label: 'Log time' },
-  { href: '/projects', label: 'Projects' },
-  { href: '/analytics', label: 'Analytics' },
+  { href: '/projects', label: 'Completed tasks' },
   { href: '/admin', label: 'Admin' },
   { href: '/settings', label: 'Settings' },
 ];
 
 const mobileNav = [
-  { href: '/dashboard', label: 'Home' },
+  { href: '/analytics', label: 'Home' },
   { href: '/jobs', label: 'Jobs' },
   { href: '/calendar', label: 'Calendar' },
   { href: '/log', label: 'Log' },
-  { href: '/projects', label: 'Projects' },
-  { href: '/analytics', label: 'Analytics' },
+  { href: '/projects', label: 'Done' },
 ];
 
 function isActive(pathname: string, href: string) {
-  if (href === '/dashboard') {
-    return pathname === '/dashboard';
-  }
-
   if (href === '/projects') {
     return pathname === '/projects' || pathname.startsWith('/projects/');
   }
