@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { Panel, SectionHeading } from '@/components/workspace-ui';
@@ -18,6 +19,7 @@ const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export default function CalendarPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [error, setError] = useState('');
+  const [taskTypeFilter, setTaskTypeFilter] = useState('all');
   const today = new Date();
   const year = today.getFullYear();
   const month = today.getMonth();
@@ -53,6 +55,10 @@ export default function CalendarPage() {
   const upcoming = jobs
     .filter((job) => new Date(job.createdAt).getMonth() === month)
     .slice(0, 6);
+  const visibleUpcoming = upcoming
+    .filter((job) => taskTypeFilter === 'all' || (job.taskTypeName ?? 'No type') === taskTypeFilter)
+    .slice()
+    .sort((left, right) => (left.taskTypeName ?? '').localeCompare(right.taskTypeName ?? '') || left.title.localeCompare(right.title));
 
   return (
     <div className="space-y-6">
@@ -82,10 +88,10 @@ export default function CalendarPage() {
                   </div>
                   <div className="mt-3 space-y-2">
                     {dayJobs.slice(0, 3).map((job) => (
-                      <div key={job.id} className="rounded-xl border border-cyan-300/20 bg-cyan-300/15 px-2 py-2 text-xs text-cyan-50">
+                      <Link key={job.id} href={`/jobs?jobId=${job.id}`} className="block rounded-xl border border-cyan-300/20 bg-cyan-300/15 px-2 py-2 text-xs text-cyan-50 transition hover:border-cyan-200/50 hover:bg-cyan-300/25">
                         <div className="truncate font-semibold">{job.title}</div>
                         <div className="mt-1 truncate text-[11px] text-cyan-100/75">{job.taskTypeName ?? job.projectName ?? 'Task'}</div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 </div>
@@ -98,11 +104,26 @@ export default function CalendarPage() {
           <SectionHeading eyebrow="Created tasks" title="This month" description="A compact list of your own tasks created in the selected month." />
           <div className="space-y-3">
             {upcoming.length === 0 ? <p className="text-sm text-slate-400">No tasks created this month.</p> : null}
-            {upcoming.map((job) => (
-              <div key={job.id} className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+            <div className="mb-4">
+              <label className="block space-y-2">
+                <span className="text-xs uppercase tracking-[0.22em] text-slate-400">Sort by type</span>
+                <select
+                  value={taskTypeFilter}
+                  onChange={(event) => setTaskTypeFilter(event.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-sm text-white outline-none"
+                >
+                  <option value="all">All task types</option>
+                  {Array.from(new Set(upcoming.map((job) => job.taskTypeName ?? 'No type'))).map((typeName) => (
+                    <option key={typeName} value={typeName}>{typeName}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {visibleUpcoming.map((job) => (
+              <Link id={`calendar-type-${job.taskTypeName ?? 'No type'}`} href={`/jobs?jobId=${job.id}`} key={job.id} className="block rounded-2xl border border-white/10 bg-slate-950/60 p-4 transition hover:border-cyan-300/30 hover:bg-slate-900/80">
                 <p className="text-sm font-semibold text-white">{job.title}</p>
-                <p className="mt-1 text-sm text-slate-400">{new Date(job.createdAt).toLocaleDateString()} - {job.status}</p>
-              </div>
+                <p className="mt-1 text-sm text-slate-400">{job.taskTypeName ?? 'No type'} - {new Date(job.createdAt).toLocaleDateString()} - {job.status}</p>
+              </Link>
             ))}
           </div>
         </Panel>

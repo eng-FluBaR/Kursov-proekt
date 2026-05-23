@@ -5,10 +5,39 @@ import { useEffect, useState } from 'react';
 
 import type { AuthUser } from '@/lib/auth-session';
 
+const refreshMessages = [
+  'Ти си най-добрия.',
+  'Не остана до края на работния ден.',
+  'Идват почивни дни, стягай се.',
+  'Днес задачите се предават по график.',
+  'Още малко и кафето печели.',
+  'Фокусът ти стои добре.',
+  'Давай смело, машината работи.',
+  'Планът изглежда под контрол.',
+  'Работният ден няма шанс.',
+  'Малките стъпки правят големия финал.',
+  'Таймерът те уважава.',
+  'Още една задача и си легенда.',
+  'Почивката идва, но първо победата.',
+  'Днес си в режим продуктивност.',
+  'Всичко важно е на един клик.',
+  'Краят на деня се вижда.',
+  'Добра работа, продължавай.',
+  'Списъкът с задачи ще олекне.',
+  'Имаш ритъм.',
+  'Екипът разчита на теб.',
+  'Днес нещата се подреждат.',
+  'Още малко и отчетът ще пее.',
+  'Ти караш проекта напред.',
+  'Спокойно, задачите падат една по една.',
+  'Пет минути фокус правят чудеса.',
+];
+
 export function UserMenu() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [message] = useState(() => refreshMessages[Math.floor(Math.random() * refreshMessages.length)]);
 
   useEffect(() => {
     async function fetchUser() {
@@ -48,7 +77,7 @@ export function UserMenu() {
     <div className="flex items-center gap-3">
       <div className="flex flex-col items-end">
         <p className="text-sm font-semibold text-white">{user.email}</p>
-        <p className="text-xs text-slate-400 capitalize">{user.role}</p>
+        <p className="max-w-64 truncate text-xs text-cyan-100/80">{message}</p>
       </div>
       <button
         onClick={handleLogout}

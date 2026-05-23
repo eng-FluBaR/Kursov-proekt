@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Panel, SectionHeading, StatCard } from '@/components/workspace-ui';
@@ -51,6 +52,7 @@ export default function AdminPage() {
   const [timeByType, setTimeByType] = useState<TimeByType[]>([]);
   const [totals, setTotals] = useState({ users: 0, projects: 0, jobs: 0, files: 0, sessions: 0 });
   const [viewerId, setViewerId] = useState('');
+  const [viewerIds, setViewerIds] = useState<string[]>([]);
   const [jobId, setJobId] = useState('');
   const [newPasswords, setNewPasswords] = useState<Record<string, string>>({});
   const [status, setStatus] = useState('');
@@ -96,6 +98,7 @@ export default function AdminPage() {
       setJobs(sharesData.jobs);
       setPermissions(sharesData.permissions);
       setViewerId((current) => current || sharesData.users.find((user) => user.role === 'user')?.id || '');
+      setViewerIds((current) => current.length > 0 ? current : sharesData.users.filter((user) => user.role === 'user').slice(0, 1).map((user) => user.id));
       setJobId((current) => current || sharesData.jobs[0]?.id || '');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Admin data failed to load.');
@@ -148,16 +151,26 @@ export default function AdminPage() {
   }
 
   async function grantAccess() {
-    const response = await fetch('/api/admin/job-shares', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ viewerId, jobId }),
-    });
-    const data = (await response.json()) as { error?: string };
-    setStatus(response.ok ? 'Task visibility granted.' : data.error ?? 'Could not grant access.');
-    if (response.ok) {
+    const targetViewerIds = viewerIds.length > 0 ? viewerIds : [viewerId].filter(Boolean);
+    const results = await Promise.all(targetViewerIds.map(async (targetViewerId) => {
+      const response = await fetch('/api/admin/job-shares', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ viewerId: targetViewerId, jobId }),
+      });
+      const data = (await response.json()) as { error?: string };
+      return { ok: response.ok, error: data.error };
+    }));
+    const failed = results.filter((result) => !result.ok);
+    setStatus(failed.length === 0 ? 'Task visibility granted.' : failed.map((result) => result.error ?? 'Could not grant access.').join(' '));
+    if (failed.length === 0) {
       await loadAdminData();
     }
+  }
+
+  function toggleViewer(userId: string) {
+    setViewerIds((current) => current.includes(userId) ? current.filter((id) => id !== userId) : [...current, userId]);
+    setViewerId(userId);
   }
 
   async function revokeAccess(permissionId: string) {
@@ -245,11 +258,58 @@ export default function AdminPage() {
       </Panel>
 
       <Panel className="p-6">
-        <SectionHeading eyebrow="Visibility" title="Share selected tasks" description="Grant a user access to one specific task owned by another user." />
-        <div className="grid gap-3 md:grid-cols-[1fr_1.6fr_auto]">
-          <select value={viewerId} onChange={(event) => setViewerId(event.target.value)} className="rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white outline-none">
-            {shareUsers.map((user) => <option key={user.id} value={user.id}>{user.email}</option>)}
-          </select>
+        <SectionHeading eyebrow="Tasks" title="Task owners" description="Every task is linked to its owner so admin reporting is easier to follow." />
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[860px] border-separate border-spacing-y-2">
+            <thead>
+              <tr className="text-left text-xs uppercase tracking-[0.22em] text-slate-400">
+                <th className="px-4 py-2">Task</th>
+                <th className="px-4 py-2">Owner</th>
+                <th className="px-4 py-2">Project</th>
+                <th className="px-4 py-2">Type</th>
+                <th className="px-4 py-2">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {jobs.map((job) => (
+                <tr key={job.id} className="bg-slate-950/60 text-sm text-slate-200">
+                  <td className="rounded-l-2xl px-4 py-3">
+                    <Link href={`/jobs?jobId=${job.id}`} className="font-semibold text-cyan-100 hover:text-cyan-200">
+                      {job.title}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3">
+                    <a href={`mailto:${job.ownerEmail ?? ''}`} className="text-white hover:text-cyan-100">{job.ownerEmail ?? 'Unknown owner'}</a>
+                  </td>
+                  <td className="px-4 py-3">{job.projectName ?? 'No project'}</td>
+                  <td className="px-4 py-3">{job.taskTypeName ?? 'No task type'}</td>
+                  <td className="rounded-r-2xl px-4 py-3 capitalize">{job.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
+
+      <Panel className="p-6">
+        <SectionHeading eyebrow="Visibility" title="Share selected tasks" description="Grant several users access to one specific task. Each user still tracks their own time separately." />
+        <div className="grid gap-3 md:grid-cols-[1.1fr_1.6fr_auto]">
+          <div className="rounded-2xl border border-white/10 bg-slate-900 p-3">
+            <p className="mb-2 text-xs uppercase tracking-[0.22em] text-slate-400">Users</p>
+            <div className="max-h-44 space-y-2 overflow-y-auto pr-1">
+              {shareUsers.map((user) => (
+                <label key={user.id} className="flex cursor-pointer items-center gap-2 rounded-xl px-2 py-2 text-sm text-slate-200 hover:bg-white/5">
+                  <input
+                    type="checkbox"
+                    checked={viewerIds.includes(user.id)}
+                    onChange={() => toggleViewer(user.id)}
+                    className="h-4 w-4 accent-cyan-300"
+                  />
+                  <span className="truncate">{user.email}</span>
+                </label>
+              ))}
+            </div>
+          </div>
           <select value={jobId} onChange={(event) => setJobId(event.target.value)} className="rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white outline-none">
             {jobsForSelectedViewer.map((job) => (
               <option key={job.id} value={job.id}>{job.title} - {job.ownerEmail ?? 'unknown'} - {job.taskTypeName ?? 'Task'}</option>

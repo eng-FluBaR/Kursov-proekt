@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { CsvExportButton } from './csv-export-button';
 import { FileUploadInput } from './UI';
 
 type Job = {
@@ -27,6 +28,13 @@ export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: Job
   const [isStarting, setIsStarting] = useState(false);
   const [trackedMinutes, setTrackedMinutes] = useState(0);
   const [sessionCount, setSessionCount] = useState(0);
+  const [timeEntries, setTimeEntries] = useState<Array<{
+    id: string;
+    startedAt: string;
+    endedAt: string | null;
+    durationMinutes: number | null;
+    note: string | null;
+  }>>([]);
   const [notes, setNotes] = useState('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [notesMessage, setNotesMessage] = useState('');
@@ -46,7 +54,16 @@ export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: Job
       if (!response.ok) {
         return;
       }
-      const data = (await response.json()) as { entries: Array<{ durationMinutes: number | null }> };
+      const data = (await response.json()) as {
+        entries: Array<{
+          id: string;
+          startedAt: string;
+          endedAt: string | null;
+          durationMinutes: number | null;
+          note: string | null;
+        }>;
+      };
+      setTimeEntries(data.entries);
       setSessionCount(data.entries.length);
       setTrackedMinutes(data.entries.reduce((sum, entry) => sum + (entry.durationMinutes ?? 0), 0));
     }
@@ -54,13 +71,19 @@ export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: Job
     fetchJobStats();
   }, [currentJob]);
 
-  if (!currentJob) return null;
+  useEffect(() => {
+    if (!currentJob || loadedNotesJobId === currentJob.id) {
+      return;
+    }
 
-  if (loadedNotesJobId !== currentJob.id) {
-    setLoadedNotesJobId(currentJob.id);
-    setNotes(currentJob.description ?? '');
-    setNotesMessage('');
-  }
+    queueMicrotask(() => {
+      setLoadedNotesJobId(currentJob.id);
+      setNotes(currentJob.description ?? '');
+      setNotesMessage('');
+    });
+  }, [currentJob, loadedNotesJobId]);
+
+  if (!currentJob) return null;
 
   async function handleStartTimer() {
     if (!currentJob) {
@@ -117,9 +140,19 @@ export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: Job
     }
   }
 
+  const exportRows = timeEntries.map((entry) => ({
+    task: currentJob.title,
+    project: currentJob.projectName,
+    taskType: currentJob.taskTypeName ?? '',
+    startedAt: new Date(entry.startedAt).toLocaleString(),
+    endedAt: entry.endedAt ? new Date(entry.endedAt).toLocaleString() : '',
+    minutes: entry.durationMinutes ?? '',
+    note: entry.note ?? '',
+  }));
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-slate-950 p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/55 px-4 py-8">
+      <div className="max-h-[calc(100vh-4rem)] w-full max-w-2xl overflow-y-auto rounded-3xl border border-white/10 bg-slate-950 p-6 shadow-2xl">
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
           <div className="flex-1">
@@ -191,6 +224,20 @@ export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: Job
           <div className="rounded-xl bg-slate-900/50 p-3">
             <p className="text-xs text-slate-400 uppercase tracking-widest">Sessions</p>
             <p className="mt-1 text-sm font-semibold text-white">{sessionCount}</p>
+          </div>
+        </div>
+
+        <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Task report</p>
+              <p className="mt-1 text-sm text-slate-300">Export all tracked sessions for this task.</p>
+            </div>
+            <CsvExportButton
+              filename={`${currentJob.title.replace(/[^a-z0-9-]+/gi, '-').toLowerCase()}-report.csv`}
+              headers={['task', 'project', 'taskType', 'startedAt', 'endedAt', 'minutes', 'note']}
+              rows={exportRows}
+            />
           </div>
         </div>
 

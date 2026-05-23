@@ -207,7 +207,7 @@ export async function GET(request: Request) {
         conditions.push(eq(jobs.userId, userId));
       }
     } else {
-      const allowedUserIds = Array.from(new Set(await getUserAccessibleTaskIds(authUser.id)));
+      const allowedUserIds = Array.from(new Set([authUser.id, ...(await getUserAccessibleTaskIds(authUser.id))]));
       const sharedJobIds = await getUserSharedJobIds(authUser.id);
       const visibilityCondition = sharedJobIds.length > 0
         ? or(inArray(jobs.userId, allowedUserIds), inArray(jobs.id, sharedJobIds))

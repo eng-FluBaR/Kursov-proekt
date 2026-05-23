@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { JobDetailModal } from './job-detail-modal';
 
 type Job = {
@@ -22,6 +23,7 @@ type JobsListProps = {
 };
 
 export function JobsList({ refreshToken = 0, initialStatus = 'active', lockStatus = false }: JobsListProps) {
+  const searchParams = useSearchParams();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -45,7 +47,23 @@ export function JobsList({ refreshToken = 0, initialStatus = 'active', lockStatu
 
       const data = (await response.json()) as { jobs: Job[] };
       console.log('Fetched jobs:', data.jobs); // Дебъг лог
-      setJobs(data.jobs || []);
+      const loadedJobs = data.jobs || [];
+      setJobs(loadedJobs);
+
+      const requestedJobId = searchParams.get('jobId');
+      if (requestedJobId && !selectedJob) {
+        const visibleJob = loadedJobs.find((job) => job.id === requestedJobId);
+        if (visibleJob) {
+          setSelectedJob(visibleJob);
+        } else {
+          const allResponse = await fetch('/api/jobs?status=all');
+          const allData = (await allResponse.json()) as { jobs?: Job[] };
+          const requestedJob = allData.jobs?.find((job) => job.id === requestedJobId);
+          if (requestedJob) {
+            setSelectedJob(requestedJob);
+          }
+        }
+      }
     } catch (err) {
       console.error('Failed to fetch jobs:', err);
       setError('Възникна грешка при зареждането на задачите.');
@@ -53,7 +71,7 @@ export function JobsList({ refreshToken = 0, initialStatus = 'active', lockStatu
       console.log('fetchJobs finished. isLoading set to false.');
       setIsLoading(false);
     }
-  }, [status]);
+  }, [searchParams, selectedJob, status]);
 
   // Задейства се при първо зареждане, промяна на таб (status) или рефреш
   useEffect(() => {

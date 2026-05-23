@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-import { CsvExportButton } from '@/components/csv-export-button';
 import { DashboardUserStats } from '@/components/dashboard-user-stats';
 import { Panel, SectionHeading } from '@/components/workspace-ui';
 
@@ -67,12 +66,6 @@ export default function AnalyticsPage() {
       .sort((left, right) => right.minutes - left.minutes);
   }, [entries]);
 
-  const taskRowsForCsv = taskTypeRows.map((row) => ({
-    taskType: row.name,
-    minutes: row.minutes,
-    time: formatMinutes(row.minutes),
-  }));
-
   const taskTotal = taskTypeRows.reduce((sum, row) => sum + row.minutes, 0);
   const topTaskMinutes = Math.max(...taskTypeRows.map((row) => row.minutes), 1);
   const donutSegments = taskTypeRows.reduce(
@@ -114,7 +107,6 @@ export default function AnalyticsPage() {
         eyebrow="Analytics"
         title="Your work overview"
         description="These numbers are calculated only from your own tracked time."
-        actions={<CsvExportButton filename="my-task-time.csv" headers={['taskType', 'minutes', 'time']} rows={taskRowsForCsv} />}
       />
 
       <DashboardUserStats />

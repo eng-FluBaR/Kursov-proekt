@@ -36,6 +36,13 @@ function isActive(pathname: string, href: string) {
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window === 'undefined') {
+      return 'dark';
+    }
+
+    return window.localStorage.getItem('tasktimer-theme') === 'light' ? 'light' : 'dark';
+  });
 
   useEffect(() => {
     async function fetchUser() {
@@ -51,6 +58,16 @@ export function AppShell({ children }: { children: ReactNode }) {
     fetchUser();
   }, []);
 
+  useEffect(() => {
+    function handleThemeChange(event: Event) {
+      const detail = (event as CustomEvent<{ theme?: 'dark' | 'light' }>).detail;
+      setTheme(detail?.theme === 'light' ? 'light' : 'dark');
+    }
+
+    window.addEventListener('tasktimer-theme-change', handleThemeChange);
+    return () => window.removeEventListener('tasktimer-theme-change', handleThemeChange);
+  }, []);
+
   const visibleDesktopNav = useMemo(
     () => desktopNav.filter((item) => item.href !== '/admin' || user?.role === 'admin'),
     [user?.role],
@@ -58,20 +75,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   const showAdminNav = user?.role === 'admin';
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.12),_transparent_24%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.14),_transparent_20%),linear-gradient(180deg,#08111f_0%,#050b16_100%)]">
+    <div className={`min-h-screen ${theme === 'light' ? 'bg-slate-100' : 'bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.12),_transparent_24%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.14),_transparent_20%),linear-gradient(180deg,#08111f_0%,#050b16_100%)]'}`}>
       <div className="mx-auto flex min-h-screen max-w-[1640px]">
         <aside className="hidden w-80 flex-col border-r border-white/10 bg-slate-950/55 px-6 py-6 backdrop-blur xl:flex">
           <div className="rounded-[28px] border border-white/10 bg-white/6 p-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-400/15 text-cyan-200 ring-1 ring-cyan-300/20">TT</div>
-              <div>
-                <p className="text-sm font-semibold text-white">TaskTimer</p>
-                <p className="text-xs text-slate-400">Operations workspace</p>
-              </div>
-            </div>
-            <div className="mt-5 flex items-center gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
-              <ProjectDot color="#34d399" />
-              <span>Neon sync ready</span>
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Today</p>
+            <p className="mt-3 text-2xl font-semibold text-white">07h 42m</p>
+            <p className="mt-2 text-sm text-slate-300">92% of target complete</p>
+            <div className="mt-4 h-2 rounded-full bg-white/8">
+              <div className="h-full w-[92%] rounded-full bg-gradient-to-r from-cyan-400 to-amber-300" />
             </div>
           </div>
 
@@ -91,27 +103,19 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </nav>
 
-          <div className="mt-auto rounded-[28px] border border-white/10 bg-white/6 p-5">
-            <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Today</p>
-            <p className="mt-3 text-2xl font-semibold text-white">07h 42m</p>
-            <p className="mt-2 text-sm text-slate-300">92% of target complete</p>
-            <div className="mt-4 h-2 rounded-full bg-white/8">
-              <div className="h-full w-[92%] rounded-full bg-gradient-to-r from-cyan-400 to-amber-300" />
-            </div>
+          <div className="mt-auto flex items-center gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
+            <ProjectDot color="#34d399" />
+            <span>Neon sync ready</span>
           </div>
         </aside>
 
         <div className="flex min-h-screen flex-1 flex-col">
           <header className="sticky top-0 z-20 border-b border-white/10 bg-slate-950/70 px-4 py-4 backdrop-blur md:px-6 xl:px-8">
             <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.28em] text-cyan-300/80">TaskTimer</p>
-                <p className="mt-1 text-lg font-semibold text-white">Track jobs, not just hours</p>
-              </div>
+              <div />
               <div className="flex items-center gap-3">
                 <div className="hidden items-center gap-3 md:flex">
                   <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">Workspace: 3D Jops planer</span>
-                  <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-4 py-2 text-sm text-amber-100">Live mock data</span>
                 </div>
                 <UserMenu />
               </div>

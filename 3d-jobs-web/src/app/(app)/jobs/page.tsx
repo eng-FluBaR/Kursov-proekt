@@ -72,11 +72,11 @@ export default function JobsPage() {
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <Panel className="p-6">
           <SectionHeading
-            eyebrow="All tasks"
+            eyebrow="Active tasks"
             title="Your task list"
-            description="View and manage all your current tasks."
+            description="View and manage the tasks that are ready to work on now."
           />
-          <JobsList refreshToken={refreshToken} />
+          <JobsList refreshToken={refreshToken} initialStatus="active" lockStatus />
         </Panel>
 
         <Panel className="p-6">
@@ -88,6 +88,15 @@ export default function JobsPage() {
           />
         </Panel>
       </div>
+
+      <Panel className="p-6">
+        <SectionHeading
+          eyebrow="Paused"
+          title="Paused tasks"
+          description="Paused tasks stay here so the main task list remains clean."
+        />
+        <JobsList refreshToken={refreshToken} initialStatus="paused" lockStatus />
+      </Panel>
     </div>
   );
 }
