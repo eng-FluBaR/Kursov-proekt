@@ -24,3 +24,19 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+select,
+option {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+select:disabled {
+  color: #94a3b8;
+}
+
+option:checked,
+option:hover {
+  background-color: #164e63;
+  color: #ffffff;
+}

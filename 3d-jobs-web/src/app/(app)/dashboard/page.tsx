@@ -1,6 +1,7 @@
+import { DashboardUserStats } from '@/components/dashboard-user-stats';
 import { DashboardTimer } from '@/components/dashboard-timer';
 import { TimeEntriesList } from '@/components/time-entries-list';
-import { EmptyState, Panel, SectionHeading, StatCard } from '@/components/workspace-ui';
+import { EmptyState, Panel, SectionHeading } from '@/components/workspace-ui';
 
 const projects = [
   { id: 'demo-production', label: 'Demo Production Line', color: '#6366f1' },
@@ -21,16 +22,11 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <SectionHeading
         eyebrow="Dashboard"
-        title="Today at a glance"
-        description="Daily summary cards, a live timer, and recent activity for the currently tracked jobs."
+        title="Your time at a glance"
+        description="Only your own task time, active timer, and recent activity are shown here."
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Tracked today" value="07h 42m" detail="+18% vs yesterday" tone="cyan" />
-        <StatCard label="Active timers" value="1" detail="Modeling in progress" tone="emerald" />
-        <StatCard label="Open projects" value="4" detail="1 archived" tone="amber" />
-        <StatCard label="Pending files" value="5" detail="Ready for review" tone="rose" />
-      </div>
+      <DashboardUserStats />
 
       <Panel className="p-6">
         <DashboardTimer projects={projects} taskTypes={taskTypes} />

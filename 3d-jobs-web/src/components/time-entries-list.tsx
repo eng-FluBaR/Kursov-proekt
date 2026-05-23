@@ -49,8 +49,8 @@ export function TimeEntriesList({ projectId }: { projectId?: string }) {
           throw new Error(`Server status: ${response.status}`);
         }
         
-        const data = (await response.json()) as { entries: TimeEntry[] };
-        setEntries(data.entries || []);
+        const data = (await response.json()) as { entries?: TimeEntry[]; timeEntries?: TimeEntry[] };
+        setEntries(data.entries ?? data.timeEntries ?? []);
       } catch (err) {
         console.error('Failed to fetch entries:', err);
         setError('Failed to load time entries');
