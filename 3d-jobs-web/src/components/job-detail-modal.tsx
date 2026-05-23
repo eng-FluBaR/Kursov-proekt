@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 
-import { CsvExportButton } from './csv-export-button';
 import { FileUploadInput } from './UI';
+import { JobWordReportButton } from './job-word-report-button';
 
 type Job = {
   id: string;
@@ -166,16 +166,6 @@ export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: Job
     day: 'numeric',
   });
 
-  const exportRows = timeEntries.map((entry) => ({
-    task: currentJob.title,
-    project: currentJob.projectName,
-    taskType: currentJob.taskTypeName ?? '',
-    startedAt: new Date(entry.startedAt).toLocaleString(),
-    endedAt: entry.endedAt ? new Date(entry.endedAt).toLocaleString() : '',
-    minutes: entry.durationMinutes ?? '',
-    note: entry.note ?? '',
-  }));
-
   return createPortal(
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950">
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-5 md:px-8">
@@ -260,10 +250,12 @@ export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: Job
                   <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Task report</p>
                   <p className="mt-1 text-sm text-slate-300">Export all tracked sessions for this task.</p>
                 </div>
-                <CsvExportButton
-                  filename={`${currentJob.title.replace(/[^a-z0-9-]+/gi, '-').toLowerCase()}-report.csv`}
-                  headers={['task', 'project', 'taskType', 'startedAt', 'endedAt', 'minutes', 'note']}
-                  rows={exportRows}
+                <JobWordReportButton
+                  job={currentJob}
+                  notes={notes}
+                  timeEntries={timeEntries}
+                  trackedMinutes={trackedMinutes}
+                  sessionCount={sessionCount}
                 />
               </div>
             </div>
