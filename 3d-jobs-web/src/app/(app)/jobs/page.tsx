@@ -1,10 +1,11 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { Panel, SectionHeading } from '@/components/workspace-ui';
-import { NewJobForm } from '@/components/new-job-form';
-import { JobsList } from '@/components/jobs-list';
+
 import { DashboardTimer } from '@/components/dashboard-timer';
+import { JobsList } from '@/components/jobs-list';
+import { NewJobForm } from '@/components/new-job-form';
+import { Panel, SectionHeading } from '@/components/workspace-ui';
 
 type ProjectResponse = {
   projects: Array<{ id: string; name: string }>;
@@ -14,12 +15,36 @@ type TaskTypeResponse = {
   taskTypes: Array<{ id: string; name: string }>;
 };
 
+type TaskView = 'active' | 'paused' | 'shared';
+
+const taskViews: Array<{ id: TaskView; label: string; title: string; description: string }> = [
+  {
+    id: 'active',
+    label: 'Active',
+    title: 'Active tasks',
+    description: 'Your own tasks that are ready to work on now.',
+  },
+  {
+    id: 'paused',
+    label: 'Paused',
+    title: 'Paused tasks',
+    description: 'Your paused tasks stay here so the main list remains clean.',
+  },
+  {
+    id: 'shared',
+    label: 'Shared',
+    title: 'Shared tasks',
+    description: 'Tasks shared with you by other users, separate from your own work.',
+  },
+];
+
 export default function JobsPage() {
   const [projects, setProjects] = useState<Array<{ id: string; label: string }>>([]);
   const [taskTypes, setTaskTypes] = useState<Array<{ id: string; label: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [refreshToken, setRefreshToken] = useState(0);
+  const [taskView, setTaskView] = useState<TaskView>('active');
 
   useEffect(() => {
     async function loadData() {
@@ -48,12 +73,14 @@ export default function JobsPage() {
       }
     }
 
-    loadData();
+    void Promise.resolve().then(loadData);
   }, []);
 
   if (loading) {
     return <div className="text-slate-300">Loading...</div>;
   }
+
+  const currentView = taskViews.find((view) => view.id === taskView) ?? taskViews[0];
 
   return (
     <div className="space-y-6">
@@ -71,12 +98,29 @@ export default function JobsPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <Panel className="p-6">
-          <SectionHeading
-            eyebrow="Active tasks"
-            title="Your task list"
-            description="View and manage the tasks that are ready to work on now."
-          />
-          <JobsList refreshToken={refreshToken} initialStatus="active" lockStatus ownOnly />
+          <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+            <SectionHeading eyebrow="Task view" title={currentView.title} description={currentView.description} />
+            <div className="flex rounded-2xl border border-white/10 bg-slate-950/60 p-1">
+              {taskViews.map((view) => (
+                <button
+                  key={view.id}
+                  type="button"
+                  onClick={() => setTaskView(view.id)}
+                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                    taskView === view.id
+                      ? 'bg-cyan-300 text-slate-950'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  {view.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {taskView === 'active' ? <JobsList refreshToken={refreshToken} initialStatus="active" lockStatus ownOnly /> : null}
+          {taskView === 'paused' ? <JobsList refreshToken={refreshToken} initialStatus="paused" lockStatus ownOnly /> : null}
+          {taskView === 'shared' ? <JobsList refreshToken={refreshToken} initialStatus="all" lockStatus sharedOnly readOnlyStatus /> : null}
         </Panel>
 
         <Panel className="p-6">
@@ -84,28 +128,13 @@ export default function JobsPage() {
           <NewJobForm
             projects={projects}
             taskTypes={taskTypes}
-            onJobCreated={() => setRefreshToken((value) => value + 1)}
+            onJobCreated={() => {
+              setRefreshToken((value) => value + 1);
+              setTaskView('active');
+            }}
           />
         </Panel>
       </div>
-
-      <Panel className="p-6">
-        <SectionHeading
-          eyebrow="Paused"
-          title="Paused tasks"
-          description="Paused tasks stay here so the main task list remains clean."
-        />
-        <JobsList refreshToken={refreshToken} initialStatus="paused" lockStatus ownOnly />
-      </Panel>
-
-      <Panel className="p-6">
-        <SectionHeading
-          eyebrow="Shared"
-          title="Shared tasks"
-          description="Tasks shared with you by other users are shown separately from your own task list."
-        />
-        <JobsList refreshToken={refreshToken} initialStatus="all" lockStatus sharedOnly readOnlyStatus />
-      </Panel>
     </div>
   );
 }
