@@ -103,7 +103,7 @@ export function JobDetailModal({ job, onClose, onStartTimer }: JobDetailModalPro
 
         {/* File Upload Section */}
         <div className="mb-6 rounded-2xl border border-dashed border-white/10 p-6 bg-white/5">
-          <FileUploadInput />
+          <FileUploadInput jobId={currentJob.id} />
         </div>
 
         {/* Metadata */}

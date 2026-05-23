@@ -177,6 +177,40 @@ export const entryFilesRelations = relations(entryFiles, ({ one }) => ({
   }),
 }));
 
+export const jobFiles = pgTable(
+  'job_files',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    jobId: uuid('job_id')
+      .notNull()
+      .references(() => jobs.id, { onDelete: 'cascade' }),
+    uploaderId: uuid('uploader_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    fileType: varchar('file_type', { length: 40 }).notNull().default('other'),
+    storageKey: varchar('storage_key', { length: 512 }).notNull(),
+    originalName: varchar('original_name', { length: 255 }).notNull(),
+    mimeType: varchar('mime_type', { length: 100 }),
+    fileSizeBytes: integer('file_size_bytes'),
+    uploadedAt: timestamp('uploaded_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    jobIdIdx: index('idx_job_files_job_id').on(table.jobId),
+    uploaderIdIdx: index('idx_job_files_uploader_id').on(table.uploaderId),
+  }),
+);
+
+export const jobFilesRelations = relations(jobFiles, ({ one }) => ({
+  job: one(jobs, {
+    fields: [jobFiles.jobId],
+    references: [jobs.id],
+  }),
+  uploader: one(users, {
+    fields: [jobFiles.uploaderId],
+    references: [users.id],
+  }),
+}));
+
 export const taskVisibilityPermissions = pgTable(
   'task_visibility_permissions',
   {

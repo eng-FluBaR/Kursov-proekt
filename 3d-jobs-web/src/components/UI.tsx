@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Entry, Project } from '@/mockData';
 
 export function LoadingSkeleton() {
@@ -141,17 +141,155 @@ export function EntryListItem({ entry, project }: EntryListItemProps) {
   );
 }
 
-export function FileUploadInput() {
+type UploadedJobFile = {
+  id: string;
+  originalName: string;
+  fileType: string;
+  mimeType: string | null;
+  fileSizeBytes: number | null;
+  uploadedAt: string;
+  downloadUrl: string;
+};
+
+function formatFileSize(bytes: number | null) {
+  if (!bytes) {
+    return 'Unknown size';
+  }
+
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${Math.round(bytes / 1024)} KB`;
+  }
+
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+export function FileUploadInput({ jobId }: { jobId?: string }) {
+  const [files, setFiles] = useState<UploadedJobFile[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const loadFiles = useCallback(async () => {
+    if (!jobId) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/jobs/${jobId}/files`);
+      const data = (await response.json()) as { files?: UploadedJobFile[]; error?: string };
+      if (!response.ok) {
+        throw new Error(data.error ?? 'Could not load files.');
+      }
+      setFiles(data.files ?? []);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not load files.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [jobId]);
+
+  useEffect(() => {
+    void Promise.resolve().then(loadFiles);
+  }, [loadFiles]);
+
+  async function uploadFiles() {
+    if (!jobId || !selectedFiles || selectedFiles.length === 0) {
+      setMessage('Choose a file first.');
+      return;
+    }
+
+    const formData = new FormData();
+    Array.from(selectedFiles).forEach((file) => formData.append('files', file));
+
+    setIsUploading(true);
+    setMessage('');
+
+    try {
+      const response = await fetch(`/api/jobs/${jobId}/files`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = (await response.json()) as { files?: UploadedJobFile[]; error?: string };
+
+      if (!response.ok) {
+        throw new Error(data.error ?? 'Upload failed.');
+      }
+
+      setSelectedFiles(null);
+      setMessage('Upload complete.');
+      await loadFiles();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Upload failed.');
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
   return (
-    <div>
-      <label className="font-semibold mb-2 block">Upload Files (optional)</label>
-      <input
-        type="file"
-        multiple
-        accept=".jpg,.png,.webp,.stl,.obj,.3mf,.step"
-        className="block w-full px-3 py-2 border border-gray-300 rounded"
-      />
-      <p className="text-sm text-gray-600 mt-1">Accepted: .jpg .png .webp .stl .obj .3mf .step</p>
+    <div className="space-y-4">
+      <div>
+        <label className="mb-2 block text-sm font-semibold text-white">Upload files</label>
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+          <input
+            key={selectedFiles ? 'selected' : 'empty'}
+            type="file"
+            multiple
+            accept=".jpg,.jpeg,.png,.webp,.stl,.obj,.3mf,.step,.stp,.pdf,.txt,.doc,.docx"
+            onChange={(event) => setSelectedFiles(event.target.files)}
+            className="block w-full rounded-2xl border border-dashed border-white/20 bg-slate-900 px-4 py-3 text-sm text-slate-200 file:mr-4 file:rounded-xl file:border-0 file:bg-cyan-300 file:px-4 file:py-2 file:font-semibold file:text-slate-950"
+          />
+          <button
+            type="button"
+            onClick={uploadFiles}
+            disabled={isUploading || !selectedFiles || selectedFiles.length === 0}
+            className="rounded-2xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isUploading ? 'Uploading...' : 'Upload'}
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-slate-400">Accepted: images, STL/OBJ/3MF/STEP, PDF, DOC, TXT.</p>
+      </div>
+
+      {message ? <p className="text-sm text-cyan-100">{message}</p> : null}
+
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Uploaded files</p>
+        {isLoading ? <p className="text-sm text-slate-400">Loading files...</p> : null}
+        {!isLoading && files.length === 0 ? <p className="text-sm text-slate-500">No files uploaded yet.</p> : null}
+        {files.map((file) => (
+          <div key={file.id} className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-white">{file.originalName}</p>
+              <p className="mt-1 text-xs text-slate-400">
+                {file.fileType} - {formatFileSize(file.fileSizeBytes)} - {new Date(file.uploadedAt).toLocaleString()}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <a
+                href={file.downloadUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10"
+              >
+                Open
+              </a>
+              <a
+                href={file.downloadUrl}
+                download={file.originalName}
+                className="rounded-xl border border-cyan-300/30 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-300/20"
+              >
+                Download
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

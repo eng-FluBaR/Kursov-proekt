@@ -57,6 +57,13 @@
       "when": 1779553380000,
       "tag": "0007_add_job_visibility_permissions",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1779554700000,
+      "tag": "0008_add_job_files",
+      "breakpoints": true
     }
   ]
 }
