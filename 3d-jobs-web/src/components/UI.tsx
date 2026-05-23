@@ -167,7 +167,7 @@ function formatFileSize(bytes: number | null) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function FileUploadInput({ jobId }: { jobId?: string }) {
+export function FileUploadInput({ jobId, onUploadStateChange }: { jobId?: string; onUploadStateChange?: (isUploading: boolean) => void }) {
   const [files, setFiles] = useState<UploadedJobFile[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -208,6 +208,7 @@ export function FileUploadInput({ jobId }: { jobId?: string }) {
     Array.from(selectedFiles).forEach((file) => formData.append('files', file));
 
     setIsUploading(true);
+    onUploadStateChange?.(true);
     setMessage('');
 
     try {
@@ -222,12 +223,13 @@ export function FileUploadInput({ jobId }: { jobId?: string }) {
       }
 
       setSelectedFiles(null);
+      setFiles((currentFiles) => [...currentFiles, ...(data.files ?? [])]);
       setMessage('Upload complete.');
-      await loadFiles();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Upload failed.');
     } finally {
       setIsUploading(false);
+      onUploadStateChange?.(false);
     }
   }
 

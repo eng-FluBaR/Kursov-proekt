@@ -1,0 +1,22 @@
+[
+  {
+    "id": "44f895cf-59b9-4ff1-a707-479f87bec008",
+    "jobId": "22f1112b-da5b-454b-854f-87b0068f0151",
+    "fileType": "image",
+    "storageKey": "22f1112b-da5b-454b-854f-87b0068f0151\\44f895cf-59b9-4ff1-a707-479f87bec008-Screenshot_2025-12-24_164530.png",
+    "originalName": "Screenshot_2025-12-24_164530.png",
+    "mimeType": "image/png",
+    "fileSizeBytes": 146894,
+    "uploadedAt": "2026-05-23T20:02:04.668Z"
+  },
+  {
+    "id": "1f6ef3c8-1612-4aee-a760-26dc5b5f8deb",
+    "jobId": "22f1112b-da5b-454b-854f-87b0068f0151",
+    "fileType": "image",
+    "storageKey": "22f1112b-da5b-454b-854f-87b0068f0151\\1f6ef3c8-1612-4aee-a760-26dc5b5f8deb-Screenshot_2025-11-30_151800.png",
+    "originalName": "Screenshot_2025-11-30_151800.png",
+    "mimeType": "image/png",
+    "fileSizeBytes": 161963,
+    "uploadedAt": "2026-05-23T20:02:22.780Z"
+  }
+]

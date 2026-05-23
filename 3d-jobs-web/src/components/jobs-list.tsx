@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { JobDetailModal } from './job-detail-modal';
 
@@ -37,6 +37,8 @@ export function JobsList({
   sharedOnly = false,
   readOnlyStatus = false,
 }: JobsListProps) {
+  const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,7 +71,8 @@ export function JobsList({
       setJobs(loadedJobs);
 
       const requestedJobId = searchParams.get('jobId');
-      if (requestedJobId && !selectedJob) {
+      const timerSelectionOnly = searchParams.get('timer') === '1';
+      if (requestedJobId && !timerSelectionOnly && !selectedJob) {
         const visibleJob = loadedJobs.find((job) => job.id === requestedJobId);
         if (visibleJob) {
           setSelectedJob(visibleJob);
@@ -116,6 +119,17 @@ export function JobsList({
   async function handleStartTimer(jobId: string) {
     console.log('Starting timer for job:', jobId);
     setSelectedJob(null);
+  }
+
+  function closeSelectedJob() {
+    setSelectedJob(null);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('jobId');
+    params.delete('timer');
+
+    const nextUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+    router.replace(nextUrl, { scroll: false });
   }
 
   function handleJobUpdated(updatedJob: Job) {
@@ -205,7 +219,7 @@ export function JobsList({
 
       <JobDetailModal
         job={selectedJob}
-        onClose={() => setSelectedJob(null)}
+        onClose={closeSelectedJob}
         onStartTimer={handleStartTimer}
         onJobUpdated={handleJobUpdated}
       />

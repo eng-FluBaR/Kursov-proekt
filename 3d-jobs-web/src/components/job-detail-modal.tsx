@@ -40,6 +40,7 @@ export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: Job
   }>>([]);
   const [notes, setNotes] = useState('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [notesMessage, setNotesMessage] = useState('');
   const [loadedNotesJobId, setLoadedNotesJobId] = useState<string | null>(null);
   const notesTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -49,6 +50,27 @@ export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: Job
   useEffect(() => {
     queueMicrotask(() => setIsMounted(true));
   }, []);
+
+  useEffect(() => {
+    if (!currentJob) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [currentJob, onClose]);
 
   function resizeNotesTextarea() {
     const textarea = notesTextareaRef.current;
@@ -119,7 +141,7 @@ export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: Job
     const activeJob = currentJob;
     setIsStarting(true);
     try {
-      router.push(`/jobs?jobId=${activeJob.id}`);
+      router.push(`/jobs?jobId=${activeJob.id}&timer=1`);
       onClose();
       onStartTimer(activeJob.id);
     } finally {
@@ -179,6 +201,7 @@ export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: Job
             </p>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
           >
@@ -241,7 +264,7 @@ export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: Job
 
           <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="rounded-2xl border border-dashed border-white/10 bg-slate-900/70 p-5">
-              <FileUploadInput jobId={currentJob.id} />
+              <FileUploadInput jobId={currentJob.id} onUploadStateChange={setIsUploadingFile} />
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-5">
@@ -264,6 +287,7 @@ export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: Job
 
         <div className="sticky bottom-0 z-10 flex gap-3 border-t border-white/10 bg-slate-950/95 py-4 backdrop-blur">
           <button
+            type="button"
             onClick={handleStartTimer}
             disabled={isStarting}
             className="flex-1 rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
@@ -271,10 +295,11 @@ export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: Job
             {isStarting ? 'Going to timer...' : 'Start timer'}
           </button>
           <button
+            type="button"
             onClick={onClose}
             className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/5"
           >
-            Close
+            {isUploadingFile ? 'Close while upload continues' : 'Close'}
           </button>
         </div>
       </div>

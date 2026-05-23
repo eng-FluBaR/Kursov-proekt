@@ -8,5 +8,15 @@
     "mimeType": "image/png",
     "fileSizeBytes": 528352,
     "uploadedAt": "2026-05-23T08:40:50.413Z"
+  },
+  {
+    "id": "b72d5e0a-1f1e-4bda-b5e0-1237406f39dc",
+    "jobId": "2ec51b95-cf81-4487-b394-ff73d117720f",
+    "fileType": "image",
+    "storageKey": "2ec51b95-cf81-4487-b394-ff73d117720f\\b72d5e0a-1f1e-4bda-b5e0-1237406f39dc-Screenshot_2025-11-30_151800.png",
+    "originalName": "Screenshot_2025-11-30_151800.png",
+    "mimeType": "image/png",
+    "fileSizeBytes": 161963,
+    "uploadedAt": "2026-05-23T19:57:49.173Z"
   }
 ]
