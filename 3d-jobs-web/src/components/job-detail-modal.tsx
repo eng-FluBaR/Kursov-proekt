@@ -20,12 +20,17 @@ type JobDetailModalProps = {
   job: Job | null;
   onClose: () => void;
   onStartTimer: (jobId: string) => void;
+  onJobUpdated?: (job: Job) => void;
 };
 
-export function JobDetailModal({ job, onClose, onStartTimer }: JobDetailModalProps) {
+export function JobDetailModal({ job, onClose, onStartTimer, onJobUpdated }: JobDetailModalProps) {
   const [isStarting, setIsStarting] = useState(false);
   const [trackedMinutes, setTrackedMinutes] = useState(0);
   const [sessionCount, setSessionCount] = useState(0);
+  const [notes, setNotes] = useState('');
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [notesMessage, setNotesMessage] = useState('');
+  const [loadedNotesJobId, setLoadedNotesJobId] = useState<string | null>(null);
   const router = useRouter();
   const currentJob = job;
 
@@ -51,6 +56,12 @@ export function JobDetailModal({ job, onClose, onStartTimer }: JobDetailModalPro
 
   if (!currentJob) return null;
 
+  if (loadedNotesJobId !== currentJob.id) {
+    setLoadedNotesJobId(currentJob.id);
+    setNotes(currentJob.description ?? '');
+    setNotesMessage('');
+  }
+
   async function handleStartTimer() {
     if (!currentJob) {
       return;
@@ -74,6 +85,39 @@ export function JobDetailModal({ job, onClose, onStartTimer }: JobDetailModalPro
     day: 'numeric',
   });
 
+  async function saveNotes() {
+    if (!currentJob) {
+      return;
+    }
+
+    const activeJob = currentJob;
+    setIsSavingNotes(true);
+    setNotesMessage('');
+
+    try {
+      const response = await fetch(`/api/jobs/${activeJob.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: notes }),
+      });
+      const data = (await response.json()) as { job?: Job; error?: string };
+
+      if (!response.ok) {
+        setNotesMessage(data.error ?? 'Could not save notes.');
+        return;
+      }
+
+      const normalizedNotes = notes.trim() || null;
+      setNotes(normalizedNotes ?? '');
+      onJobUpdated?.(data.job ? { ...currentJob, ...data.job } : { ...currentJob, description: normalizedNotes });
+      setNotesMessage('Notes saved.');
+    } catch (error) {
+      setNotesMessage(error instanceof Error ? error.message : 'Could not save notes.');
+    } finally {
+      setIsSavingNotes(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-slate-950 p-6 shadow-2xl">
@@ -94,12 +138,33 @@ export function JobDetailModal({ job, onClose, onStartTimer }: JobDetailModalPro
           </button>
         </div>
 
-        {/* Description */}
-        {job.description && (
-          <div className="mb-6 rounded-2xl bg-slate-900/50 p-4">
-            <p className="text-slate-300">{job.description}</p>
+        {/* Notes */}
+        <div className="mb-6 rounded-2xl bg-slate-900/50 p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Project notes</p>
+              <p className="mt-1 text-sm text-slate-300">Internal notes and task context.</p>
+            </div>
+            <button
+              type="button"
+              onClick={saveNotes}
+              disabled={isSavingNotes}
+              className="rounded-xl bg-cyan-300 px-3 py-2 text-xs font-semibold text-slate-950 transition hover:bg-cyan-200 disabled:opacity-50"
+            >
+              {isSavingNotes ? 'Saving...' : 'Save notes'}
+            </button>
           </div>
-        )}
+          <textarea
+            value={notes}
+            onChange={(event) => {
+              setNotes(event.target.value);
+            }}
+            rows={4}
+            className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-cyan-300/40 focus:ring-1 focus:ring-cyan-300/40"
+            placeholder="Add notes, measurements, print settings, blockers, client feedback..."
+          />
+          {notesMessage ? <p className="mt-2 text-sm text-cyan-100">{notesMessage}</p> : null}
+        </div>
 
         {/* File Upload Section */}
         <div className="mb-6 rounded-2xl border border-dashed border-white/10 p-6 bg-white/5">

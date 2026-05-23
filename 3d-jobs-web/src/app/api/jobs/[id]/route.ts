@@ -14,7 +14,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  let body: { status?: unknown };
+  let body: { status?: unknown; description?: unknown };
 
   try {
     body = await request.json();
@@ -23,9 +23,10 @@ export async function PATCH(
   }
 
   const status = typeof body.status === 'string' ? body.status : '';
+  const description = typeof body.description === 'string' ? body.description : undefined;
 
-  if (!status) {
-    return NextResponse.json({ error: 'status is required' }, { status: 400 });
+  if (!status && description === undefined) {
+    return NextResponse.json({ error: 'status or description is required' }, { status: 400 });
   }
 
   const { id } = await params;
@@ -48,7 +49,10 @@ export async function PATCH(
 
     const [updatedJob] = await db
       .update(jobs)
-      .set({ status })
+      .set({
+        ...(status ? { status } : {}),
+        ...(description !== undefined ? { description: description.trim() || null } : {}),
+      })
       .where(eq(jobs.id, id))
       .returning();
 

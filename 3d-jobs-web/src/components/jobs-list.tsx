@@ -83,6 +83,11 @@ export function JobsList({ refreshToken = 0 }: JobsListProps) {
     setSelectedJob(null);
   }
 
+  function handleJobUpdated(updatedJob: Job) {
+    setJobs((currentJobs) => currentJobs.map((job) => job.id === updatedJob.id ? { ...job, ...updatedJob } : job));
+    setSelectedJob((currentJob) => currentJob?.id === updatedJob.id ? { ...currentJob, ...updatedJob } : currentJob);
+  }
+
   return (
     <>
       <div className="space-y-4">
@@ -177,6 +182,7 @@ export function JobsList({ refreshToken = 0 }: JobsListProps) {
         job={selectedJob}
         onClose={() => setSelectedJob(null)}
         onStartTimer={handleStartTimer}
+        onJobUpdated={handleJobUpdated}
       />
     </>
   );

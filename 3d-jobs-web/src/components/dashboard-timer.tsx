@@ -32,11 +32,18 @@ type TimeEntry = {
   note: string | null;
 };
 
-function formatTime(totalSeconds: number) {
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+function formatMinutes(totalMinutes: number) {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
+}
+
+function formatElapsedMinutes(totalSeconds: number) {
+  if (totalSeconds <= 0) {
+    return formatMinutes(0);
+  }
+
+  return formatMinutes(Math.ceil(totalSeconds / 60));
 }
 
 export function DashboardTimer(props: { projects: Option[]; taskTypes: Option[] }) {
@@ -236,8 +243,8 @@ export function DashboardTimer(props: { projects: Option[]; taskTypes: Option[] 
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.26em] text-slate-400">Active timer</p>
-            <h3 className="mt-2 text-4xl font-semibold text-white tabular-nums">{formatTime(elapsed)}</h3>
-            <p className="mt-2 text-sm text-slate-300">{running ? 'Counting up in real time' : 'Timer idle'}</p>
+            <h3 className="mt-2 text-4xl font-semibold text-white tabular-nums">{formatElapsedMinutes(elapsed)}</h3>
+            <p className="mt-2 text-sm text-slate-300">{running ? 'Tracking in whole minutes' : 'Timer idle'}</p>
           </div>
           <button
             type="button"
@@ -301,12 +308,12 @@ export function DashboardTimer(props: { projects: Option[]; taskTypes: Option[] 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
             <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Session Time</p>
-            <p className="mt-2 text-xl font-semibold text-white tabular-nums">{formatTime(elapsed)}</p>
+            <p className="mt-2 text-xl font-semibold text-white tabular-nums">{formatElapsedMinutes(elapsed)}</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
             <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Total for Job</p>
             <p className="mt-2 text-xl font-semibold text-cyan-300">
-              {selectedJob?.totalDurationMinutes ? `${selectedJob.totalDurationMinutes}m` : '0m'}
+              {formatMinutes(selectedJob?.totalDurationMinutes ?? 0)}
             </p>
           </div>
         </div>
