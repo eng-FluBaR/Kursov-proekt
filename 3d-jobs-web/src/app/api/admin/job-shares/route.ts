@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   }
 
   const db = getDb();
-  const [usersList, jobsList, permissions] = await Promise.all([
+  const [usersList, jobsList] = await Promise.all([
     db
       .select({ id: users.id, email: users.email, role: users.role })
       .from(users)
@@ -33,7 +33,19 @@ export async function GET(request: Request) {
       .leftJoin(projects, eq(projects.id, jobs.projectId))
       .leftJoin(taskTypes, eq(taskTypes.id, jobs.taskTypeId))
       .orderBy(desc(jobs.createdAt)),
-    db
+  ]);
+
+  let permissions: Array<{
+    id: string;
+    viewerId: string;
+    jobId: string;
+    grantorId: string;
+    createdAt: Date;
+  }> = [];
+  let warning: string | null = null;
+
+  try {
+    permissions = await db
       .select({
         id: jobVisibilityPermissions.id,
         viewerId: jobVisibilityPermissions.viewerId,
@@ -42,10 +54,16 @@ export async function GET(request: Request) {
         createdAt: jobVisibilityPermissions.createdAt,
       })
       .from(jobVisibilityPermissions)
-      .orderBy(desc(jobVisibilityPermissions.createdAt)),
-  ]);
+      .orderBy(desc(jobVisibilityPermissions.createdAt));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes('job_visibility_permissions')) {
+      throw error;
+    }
+    warning = 'Task sharing table is missing. Run the job visibility permissions migration.';
+  }
 
-  return NextResponse.json({ users: usersList, jobs: jobsList, permissions });
+  return NextResponse.json({ users: usersList, jobs: jobsList, permissions, warning });
 }
 
 export async function POST(request: Request) {
@@ -105,6 +123,12 @@ export async function POST(request: Request) {
         results.push({ viewerId, status: 'granted', permission });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to grant permission';
+        if (message.includes('job_visibility_permissions')) {
+          return NextResponse.json(
+            { error: 'Task sharing table is missing. Run the job visibility permissions migration.' },
+            { status: 500 }
+          );
+        }
         results.push({ viewerId, status: message === 'Permission already exists' ? 'already-shared' : 'error', error: message });
       }
     }

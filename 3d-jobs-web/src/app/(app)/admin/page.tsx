@@ -59,6 +59,11 @@ export default function AdminPage() {
   const [selectedViewerIds, setSelectedViewerIds] = useState<string[]>([]);
   const [newPasswords, setNewPasswords] = useState<Record<string, string>>({});
   const [status, setStatus] = useState('');
+  const [shareWarning, setShareWarning] = useState('');
+  const [userSearch, setUserSearch] = useState('');
+  const [taskSearch, setTaskSearch] = useState('');
+  const [shareTaskSearch, setShareTaskSearch] = useState('');
+  const [shareUserSearch, setShareUserSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   const selectedJob = useMemo(
@@ -75,6 +80,54 @@ export default function AdminPage() {
     const alreadyShared = new Set(selectedJobPermissions.map((permission) => permission.viewerId));
     return shareUsers.filter((user) => user.id !== selectedJob?.ownerId && !alreadyShared.has(user.id));
   }, [selectedJob?.ownerId, selectedJobPermissions, shareUsers]);
+
+  const filteredUsers = useMemo(() => {
+    const search = userSearch.trim().toLowerCase();
+    if (!search) {
+      return users;
+    }
+
+    return users.filter((user) =>
+      [user.email, user.role, String(user.jobCount), String(user.sessionCount)].some((value) => value.toLowerCase().includes(search)),
+    );
+  }, [userSearch, users]);
+
+  const filteredJobs = useMemo(() => {
+    const search = taskSearch.trim().toLowerCase();
+    if (!search) {
+      return jobs;
+    }
+
+    return jobs.filter((job) =>
+      [job.title, job.ownerEmail, job.projectName, job.taskTypeName, job.status]
+        .some((value) => (value ?? '').toLowerCase().includes(search)),
+    );
+  }, [jobs, taskSearch]);
+
+  const filteredShareJobs = useMemo(() => {
+    const search = shareTaskSearch.trim().toLowerCase();
+    const matchingJobs = search
+      ? jobs.filter((job) =>
+          [job.title, job.ownerEmail, job.projectName, job.taskTypeName, job.status]
+            .some((value) => (value ?? '').toLowerCase().includes(search)),
+        )
+      : jobs;
+
+    if (selectedJob && !matchingJobs.some((job) => job.id === selectedJob.id)) {
+      return [selectedJob, ...matchingJobs];
+    }
+
+    return matchingJobs;
+  }, [jobs, selectedJob, shareTaskSearch]);
+
+  const filteredShareTargets = useMemo(() => {
+    const search = shareUserSearch.trim().toLowerCase();
+    if (!search) {
+      return shareTargets;
+    }
+
+    return shareTargets.filter((user) => [user.email, user.role].some((value) => value.toLowerCase().includes(search)));
+  }, [shareTargets, shareUserSearch]);
 
   const loadAdminData = useCallback(async () => {
     setStatus('');
@@ -102,6 +155,7 @@ export default function AdminPage() {
         users: ShareUser[];
         jobs: ShareJob[];
         permissions: SharePermission[];
+        warning?: string | null;
       };
 
       setUsers(usersData.users);
@@ -110,6 +164,7 @@ export default function AdminPage() {
       setShareUsers(sharesData.users);
       setJobs(sharesData.jobs);
       setPermissions(sharesData.permissions);
+      setShareWarning(sharesData.warning ?? '');
       setSelectedJobId((current) => current || sharesData.jobs[0]?.id || '');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Admin data failed to load.');
@@ -227,8 +282,22 @@ export default function AdminPage() {
 
       <Panel id="registered-users" className="scroll-mt-24 p-6">
         <SectionHeading eyebrow="Registered users" title="All app users" description="Every registered account in the database is listed here." />
+        <div className="mb-5">
+          <label className="block space-y-2">
+            <span className="text-xs uppercase tracking-[0.22em] text-slate-400">Search users</span>
+            <input
+              type="search"
+              value={userSearch}
+              onChange={(event) => setUserSearch(event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/40"
+              placeholder="Search by email, role, jobs, sessions..."
+            />
+          </label>
+          <p className="mt-2 text-xs text-slate-400">Showing {filteredUsers.length} of {users.length} users</p>
+        </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {users.map((user) => (
+          {filteredUsers.length === 0 ? <p className="text-sm text-slate-400">No users match this search.</p> : null}
+          {filteredUsers.map((user) => (
             <div key={user.id} className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -261,7 +330,7 @@ export default function AdminPage() {
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => (
+              {filteredUsers.map((user) => (
                 <tr key={user.id} className="bg-slate-950/60 text-sm text-slate-200">
                   <td className="rounded-l-2xl px-4 py-4 font-medium text-white">{user.email}</td>
                   <td className="px-4 py-4">
@@ -300,6 +369,19 @@ export default function AdminPage() {
 
       <Panel id="task-owners" className="scroll-mt-24 p-6">
         <SectionHeading eyebrow="Task owners" title="All tasks and who created them" description="Open a task, check its owner, and see project/type/status at a glance." />
+        <div className="mb-5">
+          <label className="block space-y-2">
+            <span className="text-xs uppercase tracking-[0.22em] text-slate-400">Search tasks</span>
+            <input
+              type="search"
+              value={taskSearch}
+              onChange={(event) => setTaskSearch(event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/40"
+              placeholder="Search by task, creator, project, type, status..."
+            />
+          </label>
+          <p className="mt-2 text-xs text-slate-400">Showing {filteredJobs.length} of {jobs.length} tasks</p>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] border-separate border-spacing-y-2">
             <thead>
@@ -312,7 +394,7 @@ export default function AdminPage() {
               </tr>
             </thead>
             <tbody>
-              {jobs.map((job) => (
+              {filteredJobs.map((job) => (
                 <tr key={job.id} className="bg-slate-950/60 text-sm text-slate-200">
                   <td className="rounded-l-2xl px-4 py-3">
                     <Link href={`/jobs?jobId=${job.id}`} className="font-semibold text-cyan-100 hover:text-cyan-200">
@@ -332,10 +414,18 @@ export default function AdminPage() {
 
       <Panel id="share-task" className="scroll-mt-24 p-6">
         <SectionHeading eyebrow="Share task visibility" title="Choose one task, then users" description="The selected users will see and work on this task. Their tracked time stays separate per user." />
+        {shareWarning ? <div className="mb-4 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">{shareWarning}</div> : null}
         <div className="grid gap-5 xl:grid-cols-[1.1fr_1fr]">
           <div className="space-y-4">
             <label className="block space-y-2">
               <span className="text-xs uppercase tracking-[0.22em] text-slate-400">Task to share</span>
+              <input
+                type="search"
+                value={shareTaskSearch}
+                onChange={(event) => setShareTaskSearch(event.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-sm text-white outline-none focus:border-cyan-300/40"
+                placeholder="Filter tasks before selecting..."
+              />
               <select
                 value={selectedJobId}
                 onChange={(event) => {
@@ -344,12 +434,13 @@ export default function AdminPage() {
                 }}
                 className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white outline-none"
               >
-                {jobs.map((job) => (
+                {filteredShareJobs.map((job) => (
                   <option key={job.id} value={job.id}>
                     {job.title} | owner: {job.ownerEmail ?? 'unknown'} | {job.status}
                   </option>
                 ))}
               </select>
+              <span className="text-xs text-slate-400">Showing {filteredShareJobs.length} of {jobs.length} tasks</span>
             </label>
 
             {selectedJob ? (
@@ -367,9 +458,16 @@ export default function AdminPage() {
 
           <div className="rounded-2xl border border-white/10 bg-slate-900 p-4">
             <p className="mb-3 text-xs uppercase tracking-[0.22em] text-slate-400">Users who can receive access</p>
+            <input
+              type="search"
+              value={shareUserSearch}
+              onChange={(event) => setShareUserSearch(event.target.value)}
+              className="mb-3 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 py-3 text-sm text-white outline-none focus:border-cyan-300/40"
+              placeholder="Search users to share with..."
+            />
             <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
-              {shareTargets.length === 0 ? <p className="text-sm text-slate-400">No more users available for this task.</p> : null}
-              {shareTargets.map((user) => (
+              {filteredShareTargets.length === 0 ? <p className="text-sm text-slate-400">No users match this search or everyone already has access.</p> : null}
+              {filteredShareTargets.map((user) => (
                 <label key={user.id} className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-950/60 px-3 py-3 text-sm text-slate-200 hover:border-cyan-300/30">
                   <span className="truncate">{user.email}</span>
                   <input
