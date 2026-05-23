@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileUploadInput } from './UI';
 
@@ -24,18 +24,45 @@ type JobDetailModalProps = {
 
 export function JobDetailModal({ job, onClose, onStartTimer }: JobDetailModalProps) {
   const [isStarting, setIsStarting] = useState(false);
+  const [trackedMinutes, setTrackedMinutes] = useState(0);
+  const [sessionCount, setSessionCount] = useState(0);
   const router = useRouter();
-
-  if (!job) return null;
   const currentJob = job;
 
+  useEffect(() => {
+    async function fetchJobStats() {
+      if (!currentJob) {
+        setSessionCount(0);
+        setTrackedMinutes(0);
+        return;
+      }
+
+      const response = await fetch(`/api/time-entries?jobId=${currentJob.id}`);
+      if (!response.ok) {
+        return;
+      }
+      const data = (await response.json()) as { entries: Array<{ durationMinutes: number | null }> };
+      setSessionCount(data.entries.length);
+      setTrackedMinutes(data.entries.reduce((sum, entry) => sum + (entry.durationMinutes ?? 0), 0));
+    }
+
+    fetchJobStats();
+  }, [currentJob]);
+
+  if (!currentJob) return null;
+
   async function handleStartTimer() {
+    if (!currentJob) {
+      return;
+    }
+
+    const activeJob = currentJob;
     setIsStarting(true);
     try {
       // Navigate to dashboard with job ID as query param
-      router.push(`/dashboard?jobId=${currentJob.id}`);
+      router.push(`/dashboard?jobId=${activeJob.id}`);
       onClose();
-      onStartTimer(currentJob.id);
+      onStartTimer(activeJob.id);
     } finally {
       setIsStarting(false);
     }
@@ -80,7 +107,7 @@ export function JobDetailModal({ job, onClose, onStartTimer }: JobDetailModalPro
         </div>
 
         {/* Metadata */}
-        <div className="mb-6 grid grid-cols-3 gap-4">
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <div className="rounded-xl bg-slate-900/50 p-3">
             <p className="text-xs text-slate-400 uppercase tracking-widest">Status</p>
             <p className="mt-1 text-sm font-semibold capitalize text-white">{job.status}</p>
@@ -91,7 +118,15 @@ export function JobDetailModal({ job, onClose, onStartTimer }: JobDetailModalPro
           </div>
           <div className="rounded-xl bg-slate-900/50 p-3">
             <p className="text-xs text-slate-400 uppercase tracking-widest">Type</p>
-            <p className="mt-1 text-sm font-semibold text-white">{job.taskTypeName || 'None'}</p>
+            <p className="mt-1 text-sm font-semibold text-white">{currentJob.taskTypeName || 'None'}</p>
+          </div>
+          <div className="rounded-xl bg-slate-900/50 p-3">
+            <p className="text-xs text-slate-400 uppercase tracking-widest">Tracked</p>
+            <p className="mt-1 text-sm font-semibold text-cyan-200">{Math.floor(trackedMinutes / 60)}h {trackedMinutes % 60}m</p>
+          </div>
+          <div className="rounded-xl bg-slate-900/50 p-3">
+            <p className="text-xs text-slate-400 uppercase tracking-widest">Sessions</p>
+            <p className="mt-1 text-sm font-semibold text-white">{sessionCount}</p>
           </div>
         </div>
 

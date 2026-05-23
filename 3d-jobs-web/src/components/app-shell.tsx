@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
+import type { AuthUser } from '@/lib/auth-session';
 import { ProjectDot } from './workspace-ui';
 import { UserMenu } from './user-menu';
 
@@ -41,6 +43,27 @@ function isActive(pathname: string, href: string) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const response = await fetch('/api/auth/me');
+        const data = (await response.json()) as { user: AuthUser | null };
+        setUser(data.user);
+      } catch (error) {
+        console.error('Failed to fetch shell user:', error);
+      }
+    }
+
+    fetchUser();
+  }, []);
+
+  const visibleDesktopNav = useMemo(
+    () => desktopNav.filter((item) => item.href !== '/admin' || user?.role === 'admin'),
+    [user?.role],
+  );
+  const showAdminNav = user?.role === 'admin';
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.12),_transparent_24%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.14),_transparent_20%),linear-gradient(180deg,#08111f_0%,#050b16_100%)]">
@@ -61,7 +84,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <nav className="mt-6 space-y-2">
-            {desktopNav.map((item) => {
+            {visibleDesktopNav.map((item) => {
               const active = isActive(pathname, item.href);
               return (
                 <Link
@@ -129,7 +152,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span>More</span>
             </summary>
             <div className="absolute bottom-14 right-0 w-44 rounded-2xl border border-white/10 bg-slate-950 p-2 shadow-xl">
-              <Link href="/admin" className="block rounded-xl px-3 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">Admin</Link>
+              {showAdminNav ? <Link href="/admin" className="block rounded-xl px-3 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">Admin</Link> : null}
               <Link href="/settings" className="block rounded-xl px-3 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">Settings</Link>
             </div>
           </details>

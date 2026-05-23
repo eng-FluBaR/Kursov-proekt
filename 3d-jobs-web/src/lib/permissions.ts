@@ -5,10 +5,19 @@ import { getDb } from './db';
 export async function getUserAccessibleTaskIds(userId: string): Promise<string[]> {
   const db = getDb();
 
-  const allowedPermissions = await db
-    .select({ subjectId: taskVisibilityPermissions.subjectId })
-    .from(taskVisibilityPermissions)
-    .where(eq(taskVisibilityPermissions.viewerId, userId));
+  let allowedPermissions: Array<{ subjectId: string }> = [];
+
+  try {
+    allowedPermissions = await db
+      .select({ subjectId: taskVisibilityPermissions.subjectId })
+      .from(taskVisibilityPermissions)
+      .where(eq(taskVisibilityPermissions.viewerId, userId));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes('task_visibility_permissions')) {
+      throw error;
+    }
+  }
 
   return [userId, ...allowedPermissions.map((p) => p.subjectId)];
 }

@@ -1,10 +1,9 @@
-import { and, eq, inArray, desc } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
-import { jobs, projects, taskTypes } from '@3d-jobs/db/src/schema';
+import { jobVisibilityPermissions, jobs, projects, taskTypes, timeEntries } from '@3d-jobs/db/src/schema';
 import { getRequestAuthUser } from '@/lib/auth-session';
 import { getDb } from '@/lib/db';
-import { getUserAccessibleTaskIds } from '@/lib/permissions';
 
 export async function POST(request: Request) {
   const authUser = getRequestAuthUser(request);
@@ -14,9 +13,12 @@ export async function POST(request: Request) {
 
   let body: {
     projectId?: unknown;
+    jobId?: unknown;
     taskTypeId?: unknown;
-    title?: unknown;
-    description?: unknown;
+    startedAt?: unknown;
+    endedAt?: unknown;
+    durationMinutes?: unknown;
+    note?: unknown;
   };
 
   try {
@@ -25,73 +27,89 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const projectId = typeof body.projectId === 'string' ? body.projectId.trim() : '';
-  const taskTypeId = typeof body.taskTypeId === 'string' ? body.taskTypeId.trim() : '';
-  const title = typeof body.title === 'string' ? body.title.trim() : '';
-  const description = typeof body.description === 'string' ? body.description.trim() : '';
+  const jobId = typeof body.jobId === 'string' ? body.jobId : '';
+  const startedAtValue = typeof body.startedAt === 'string' ? body.startedAt : '';
+  const startedAt = startedAtValue ? new Date(startedAtValue) : null;
+  const endedAt = typeof body.endedAt === 'string' ? new Date(body.endedAt) : null;
+  const note = typeof body.note === 'string' ? body.note.trim() : '';
 
-  if (!projectId || !title) {
-    return NextResponse.json(
-      { error: 'projectId and title are required' },
-      { status: 400 }
-    );
+  if (!jobId || !startedAt || Number.isNaN(startedAt.getTime())) {
+    return NextResponse.json({ error: 'jobId and startedAt are required' }, { status: 400 });
   }
 
-  try {
-    const db = getDb();
+  if (endedAt && Number.isNaN(endedAt.getTime())) {
+    return NextResponse.json({ error: 'endedAt is invalid' }, { status: 400 });
+  }
 
-    const [project] = await db
-      .select({ id: projects.id })
-      .from(projects)
-      .where(and(eq(projects.id, projectId), eq(projects.userId, authUser.id)))
+  const db = getDb();
+  const [job] = await db
+    .select({
+      id: jobs.id,
+      userId: jobs.userId,
+      projectId: jobs.projectId,
+      projectName: projects.name,
+      taskTypeId: jobs.taskTypeId,
+      taskTypeName: taskTypes.name,
+    })
+    .from(jobs)
+    .leftJoin(projects, eq(projects.id, jobs.projectId))
+    .leftJoin(taskTypes, eq(taskTypes.id, jobs.taskTypeId))
+    .where(eq(jobs.id, jobId))
+    .limit(1);
+
+  if (!job) {
+    return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+  }
+
+  if (job.userId !== authUser.id) {
+    const [permission] = await db
+      .select({ id: jobVisibilityPermissions.id })
+      .from(jobVisibilityPermissions)
+      .where(and(
+        eq(jobVisibilityPermissions.viewerId, authUser.id),
+        eq(jobVisibilityPermissions.jobId, jobId)
+      ))
       .limit(1);
 
-    if (!project) {
-      return NextResponse.json(
-        { error: 'Please select one of your own projects before creating a job.' },
-        { status: 400 }
-      );
+    if (!permission) {
+      return NextResponse.json({ error: 'You cannot track time for this job.' }, { status: 403 });
     }
-
-    const [newJob] = await db
-      .insert(jobs)
-      .values({
-        userId: authUser.id,
-        projectId,
-        taskTypeId: taskTypeId || null,
-        title,
-        description: description || null,
-        status: 'active',
-      })
-      .returning();
-
-    const [jobWithDetails] = await db
-      .select({
-        id: jobs.id,
-        projectId: jobs.projectId,
-        projectName: projects.name,
-        taskTypeId: jobs.taskTypeId,
-        taskTypeName: taskTypes.name,
-        title: jobs.title,
-        description: jobs.description,
-        status: jobs.status,
-        userId: jobs.userId,
-        createdAt: jobs.createdAt,
-      })
-      .from(jobs)
-      .leftJoin(projects, eq(jobs.projectId, projects.id))
-      .leftJoin(taskTypes, eq(jobs.taskTypeId, taskTypes.id))
-      .where(eq(jobs.id, newJob.id));
-
-    return NextResponse.json({ job: jobWithDetails }, { status: 201 });
-  } catch (error) {
-    console.error('Failed to create job:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to create job';
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
   }
+
+  const durationMinutes = typeof body.durationMinutes === 'number'
+    ? Math.max(0, Math.round(body.durationMinutes))
+    : endedAt
+      ? Math.max(0, Math.round((endedAt.getTime() - startedAt.getTime()) / 60000))
+      : null;
+
+  const [entry] = await db
+    .insert(timeEntries)
+    .values({
+      userId: authUser.id,
+      projectId: job.projectId,
+      jobId: job.id,
+      taskTypeId: job.taskTypeId,
+      startedAt,
+      endedAt,
+      durationMinutes,
+      note: note || null,
+    })
+    .returning();
+
+  return NextResponse.json({
+    entry: {
+      id: entry.id,
+      projectId: entry.projectId,
+      projectName: job.projectName ?? 'Unknown project',
+      jobId: entry.jobId,
+      taskTypeId: entry.taskTypeId,
+      taskTypeName: job.taskTypeName,
+      startedAt: entry.startedAt.toISOString(),
+      endedAt: entry.endedAt?.toISOString() ?? null,
+      durationMinutes: entry.durationMinutes,
+      note: entry.note,
+    },
+  }, { status: 201 });
 }
 
 export async function GET(request: Request) {
@@ -102,44 +120,52 @@ export async function GET(request: Request) {
 
   try {
     const url = new URL(request.url);
-    const status = url.searchParams.get('status') || 'active';
     const projectId = url.searchParams.get('projectId');
-    const allowedUserIds = await getUserAccessibleTaskIds(authUser.id);
-    const conditions = [inArray(jobs.userId, allowedUserIds)];
-
-    if (status) {
-      conditions.push(eq(jobs.status, status));
-    }
+    const jobId = url.searchParams.get('jobId');
+    const conditions = [eq(timeEntries.userId, authUser.id)];
 
     if (projectId) {
-      conditions.push(eq(jobs.projectId, projectId));
+      conditions.push(eq(timeEntries.projectId, projectId));
+    }
+
+    if (jobId) {
+      conditions.push(eq(timeEntries.jobId, jobId));
     }
 
     const db = getDb();
-    const jobsList = await db
+    const entries = await db
       .select({
-        id: jobs.id,
-        projectId: jobs.projectId,
+        id: timeEntries.id,
+        projectId: timeEntries.projectId,
         projectName: projects.name,
-        taskTypeId: jobs.taskTypeId,
+        jobId: timeEntries.jobId,
+        jobTitle: jobs.title,
+        taskTypeId: timeEntries.taskTypeId,
         taskTypeName: taskTypes.name,
-        title: jobs.title,
-        description: jobs.description,
-        status: jobs.status,
-        userId: jobs.userId,
-        createdAt: jobs.createdAt,
+        startedAt: timeEntries.startedAt,
+        endedAt: timeEntries.endedAt,
+        durationMinutes: timeEntries.durationMinutes,
+        note: timeEntries.note,
       })
-      .from(jobs)
-      .leftJoin(projects, eq(jobs.projectId, projects.id))
-      .leftJoin(taskTypes, eq(jobs.taskTypeId, taskTypes.id))
+      .from(timeEntries)
+      .innerJoin(projects, eq(projects.id, timeEntries.projectId))
+      .leftJoin(jobs, eq(jobs.id, timeEntries.jobId))
+      .leftJoin(taskTypes, eq(taskTypes.id, timeEntries.taskTypeId))
       .where(and(...conditions))
-      .orderBy(desc(jobs.createdAt));
+      .orderBy(desc(timeEntries.startedAt))
+      .limit(100);
 
-    return NextResponse.json({ jobs: jobsList });
+    const timeEntriesList = entries.map((entry) => ({
+      ...entry,
+      startedAt: entry.startedAt.toISOString(),
+      endedAt: entry.endedAt?.toISOString() ?? null,
+    }));
+
+    return NextResponse.json({ entries: timeEntriesList, timeEntries: timeEntriesList });
   } catch (error) {
-    console.error('Failed to fetch jobs:', error);
+    console.error('Failed to fetch time entries:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch jobs' },
+      { error: 'Failed to fetch time entries' },
       { status: 500 }
     );
   }

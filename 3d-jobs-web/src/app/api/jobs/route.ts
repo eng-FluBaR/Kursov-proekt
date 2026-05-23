@@ -1,10 +1,11 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, or } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 import { jobs, projects, taskTypes } from '@3d-jobs/db/src/schema';
 import { getRequestAuthUser } from '@/lib/auth-session';
 import { getDb } from '@/lib/db';
 import { getUserAccessibleTaskIds } from '@/lib/permissions';
+import { getUserSharedJobIds } from '@/lib/job-permissions';
 
 export async function POST(request: Request) {
   const authUser = getRequestAuthUser(request);
@@ -103,17 +104,24 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const status = url.searchParams.get('status') || 'active';
     const projectId = url.searchParams.get('projectId');
+    const ownOnly = url.searchParams.get('ownOnly') === 'true';
 
     const db = getDb();
     
     // Users should always see their own tasks
     // Additionally, they can see tasks from users who have shared tasks with them
-    const allowedUserIds = [authUser.id, ...(await getUserAccessibleTaskIds(authUser.id))];
+    const allowedUserIds = ownOnly
+      ? [authUser.id]
+      : Array.from(new Set([authUser.id, ...(await getUserAccessibleTaskIds(authUser.id))]));
+    const sharedJobIds = ownOnly ? [] : await getUserSharedJobIds(authUser.id);
 
     // Build conditions array
-    const conditions = [inArray(jobs.userId, allowedUserIds)];
+    const visibilityCondition = sharedJobIds.length > 0
+      ? or(inArray(jobs.userId, allowedUserIds), inArray(jobs.id, sharedJobIds))
+      : inArray(jobs.userId, allowedUserIds);
+    const conditions = [visibilityCondition];
     
-    if (status) {
+    if (status && status !== 'all') {
       conditions.push(eq(jobs.status, status));
     }
 

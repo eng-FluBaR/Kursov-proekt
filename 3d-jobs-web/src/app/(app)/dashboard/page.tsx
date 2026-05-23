@@ -1,6 +1,6 @@
 import { DashboardTimer } from '@/components/dashboard-timer';
 import { TimeEntriesList } from '@/components/time-entries-list';
-import { EmptyState, Panel, ProjectDot, SectionHeading, StatCard } from '@/components/workspace-ui';
+import { EmptyState, Panel, SectionHeading, StatCard } from '@/components/workspace-ui';
 
 const projects = [
   { id: 'demo-production', label: 'Demo Production Line', color: '#6366f1' },

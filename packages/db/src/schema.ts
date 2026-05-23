@@ -214,3 +214,41 @@ export const taskVisibilityPermissionsRelations = relations(taskVisibilityPermis
     references: [users.id],
   }),
 }));
+
+export const jobVisibilityPermissions = pgTable(
+  'job_visibility_permissions',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    grantorId: uuid('grantor_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    viewerId: uuid('viewer_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    jobId: uuid('job_id')
+      .notNull()
+      .references(() => jobs.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    grantorIdIdx: index('idx_job_permissions_grantor_id').on(table.grantorId),
+    viewerIdIdx: index('idx_job_permissions_viewer_id').on(table.viewerId),
+    jobIdIdx: index('idx_job_permissions_job_id').on(table.jobId),
+    uniqueJobPermissionIdx: index('idx_job_permissions_unique').on(table.viewerId, table.jobId),
+  }),
+);
+
+export const jobVisibilityPermissionsRelations = relations(jobVisibilityPermissions, ({ one }) => ({
+  grantor: one(users, {
+    fields: [jobVisibilityPermissions.grantorId],
+    references: [users.id],
+  }),
+  viewer: one(users, {
+    fields: [jobVisibilityPermissions.viewerId],
+    references: [users.id],
+  }),
+  job: one(jobs, {
+    fields: [jobVisibilityPermissions.jobId],
+    references: [jobs.id],
+  }),
+}));

@@ -39,7 +39,8 @@ function formatTime(totalSeconds: number) {
   return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
 }
 
-export function DashboardTimer({ projects, taskTypes }: { projects: Option[]; taskTypes: Option[] }) {
+export function DashboardTimer(props: { projects: Option[]; taskTypes: Option[] }) {
+  void props;
   const searchParams = useSearchParams();
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
