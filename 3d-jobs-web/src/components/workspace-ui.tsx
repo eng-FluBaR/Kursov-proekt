@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 
 export function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <section className={`rounded-3xl border border-white/10 bg-white/6 shadow-[0_24px_80px_rgba(15,23,42,0.35)] backdrop-blur ${className}`}>{children}</section>;
@@ -27,7 +28,19 @@ export function SectionHeading({
   );
 }
 
-export function StatCard({ label, value, detail, tone = 'cyan' }: { label: string; value: string; detail?: string; tone?: 'cyan' | 'amber' | 'emerald' | 'rose' }) {
+export function StatCard({
+  label,
+  value,
+  detail,
+  tone = 'cyan',
+  href,
+}: {
+  label: string;
+  value: string;
+  detail?: string;
+  tone?: 'cyan' | 'amber' | 'emerald' | 'rose';
+  href?: string;
+}) {
   const toneClasses = {
     cyan: 'from-cyan-400/25 to-sky-400/10 border-cyan-300/15',
     amber: 'from-amber-400/25 to-orange-400/10 border-amber-300/15',
@@ -35,12 +48,24 @@ export function StatCard({ label, value, detail, tone = 'cyan' }: { label: strin
     rose: 'from-rose-400/25 to-pink-400/10 border-rose-300/15',
   }[tone];
 
-  return (
-    <div className={`rounded-3xl border bg-gradient-to-br ${toneClasses} p-5` }>
+  const content = (
+    <>
       <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-300/80">{label}</p>
       <p className="mt-3 text-3xl font-semibold text-white">{value}</p>
       {detail ? <p className="mt-2 text-sm text-slate-300">{detail}</p> : null}
-    </div>
+    </>
+  );
+
+  const className = `block rounded-3xl border bg-gradient-to-br ${toneClasses} p-5 ${
+    href ? 'transition hover:-translate-y-0.5 hover:border-white/25 hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-cyan-300/40' : ''
+  }`;
+
+  return href ? (
+    <Link href={href} className={className}>
+      {content}
+    </Link>
+  ) : (
+    <div className={className}>{content}</div>
   );
 }
 

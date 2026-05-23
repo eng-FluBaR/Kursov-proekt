@@ -13,7 +13,6 @@ const desktopNav = [
   { href: '/analytics', label: 'Analytics' },
   { href: '/jobs', label: 'Jobs' },
   { href: '/calendar', label: 'Calendar' },
-  { href: '/log', label: 'Log time' },
   { href: '/projects', label: 'Completed tasks' },
   { href: '/admin', label: 'Admin' },
   { href: '/settings', label: 'Settings' },
@@ -23,7 +22,6 @@ const mobileNav = [
   { href: '/analytics', label: 'Home' },
   { href: '/jobs', label: 'Jobs' },
   { href: '/calendar', label: 'Calendar' },
-  { href: '/log', label: 'Log' },
   { href: '/projects', label: 'Done' },
 ];
 
@@ -125,7 +123,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       <nav className="fixed inset-x-3 bottom-3 z-30 rounded-[1.5rem] border border-white/10 bg-slate-950/88 px-2 py-2 shadow-[0_16px_50px_rgba(0,0,0,0.45)] backdrop-blur md:hidden">
-        <div className="grid grid-cols-6 gap-1 text-[11px] font-medium text-slate-300">
+        <div className="grid grid-cols-5 gap-1 text-[11px] font-medium text-slate-300">
           {mobileNav.map((item) => {
             const active = isActive(pathname, item.href);
             return (

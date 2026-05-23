@@ -10,7 +10,6 @@ interface SidebarProps {
 const navItems = [
   { href: '/', label: 'Landing' },
   { href: '/analytics', label: 'Analytics' },
-  { href: '/log', label: 'Log Entry' },
   { href: '/calendar', label: 'Calendar' },
   { href: '/projects', label: 'Completed tasks' },
   { href: '/admin', label: 'Admin' },
@@ -19,7 +18,6 @@ const navItems = [
 
 const tabItems = [
   { href: '/analytics', label: 'Home' },
-  { href: '/log', label: 'Log' },
   { href: '/projects', label: 'Done' },
   { href: '/settings', label: 'Settings' },
 ];
