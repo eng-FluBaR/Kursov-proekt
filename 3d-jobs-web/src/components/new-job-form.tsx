@@ -18,17 +18,16 @@ type NewJobFormProps = {
 };
 
 export function NewJobForm({ projects, taskTypes, onJobCreated }: NewJobFormProps) {
-  const [projectId, setProjectId] = useState('');
   const [taskTypeId, setTaskTypeId] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const selectedProjectId = projects.some((project) => project.id === projectId)
-    ? projectId
-    : projects[0]?.id ?? '';
-  const selectedTaskTypeId = taskTypes.some((taskType) => taskType.id === taskTypeId) ? taskTypeId : '';
+  const selectedProjectId = projects[0]?.id ?? '';
+  const selectedTaskTypeId = taskTypes.some((taskType) => taskType.id === taskTypeId)
+    ? taskTypeId
+    : taskTypes[0]?.id ?? '';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,19 +35,19 @@ export function NewJobForm({ projects, taskTypes, onJobCreated }: NewJobFormProp
     setIsLoading(true);
 
     if (!title.trim()) {
-      setError('Job Title is required.');
+      setError('Task name is required.');
       setIsLoading(false);
       return;
     }
 
     if (!selectedProjectId) {
-      setError('Please select a valid project.');
+      setError('No project is available for this account.');
       setIsLoading(false);
       return;
     }
 
-    if (taskTypeId && !selectedTaskTypeId) {
-      setError('Selected task type is invalid. Please refresh and try again.');
+    if (!selectedTaskTypeId) {
+      setError('Please select a task type.');
       setIsLoading(false);
       return;
     }
@@ -59,7 +58,7 @@ export function NewJobForm({ projects, taskTypes, onJobCreated }: NewJobFormProp
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           projectId: selectedProjectId,
-          taskTypeId: selectedTaskTypeId || null,
+          taskTypeId: selectedTaskTypeId,
           title,
           description: description || null,
         }),
@@ -92,63 +91,48 @@ export function NewJobForm({ projects, taskTypes, onJobCreated }: NewJobFormProp
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-white/10 bg-slate-950/60 p-6">
-      <h3 className="text-lg font-semibold text-white">Create New Job</h3>
+      <h3 className="text-lg font-semibold text-white">Create New Task</h3>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-2">
-          <span className="text-sm text-slate-300">Project</span>
+          <span className="text-sm text-slate-300">Task name</span>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter task name..."
+            required
+            className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white placeholder-slate-500 outline-none focus:border-cyan-300/40 focus:ring-1 focus:ring-cyan-300/40"
+          />
+        </label>
+
+        <label className="space-y-2">
+          <span className="text-sm text-slate-300">Task type</span>
           <select
-            value={selectedProjectId}
-            onChange={(e) => setProjectId(e.target.value)}
+            value={selectedTaskTypeId}
+            onChange={(e) => setTaskTypeId(e.target.value)}
+            required
             className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-cyan-300/40 focus:ring-1 focus:ring-cyan-300/40 cursor-pointer"
           >
-            {projects.length === 0 ? (
-              <option value="">No projects available</option>
+            {taskTypes.length === 0 ? (
+              <option value="">No task types available</option>
             ) : (
-              projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label}
+              taskTypes.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.label}
                 </option>
               ))
             )}
           </select>
         </label>
-
-        <label className="space-y-2">
-          <span className="text-sm text-slate-300">Task Type (optional)</span>
-          <select
-            value={selectedTaskTypeId}
-            onChange={(e) => setTaskTypeId(e.target.value)}
-            className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-cyan-300/40 focus:ring-1 focus:ring-cyan-300/40 cursor-pointer"
-          >
-            <option value="">No task type</option>
-            {taskTypes.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </label>
       </div>
 
       <label className="space-y-2">
-        <span className="text-sm text-slate-300">Job Title</span>
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Enter job title..."
-          required
-          className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white placeholder-slate-500 outline-none focus:border-cyan-300/40 focus:ring-1 focus:ring-cyan-300/40"
-        />
-      </label>
-
-      <label className="space-y-2">
-        <span className="text-sm text-slate-300">Description (optional)</span>
+        <span className="text-sm text-slate-300">Notes / description (optional)</span>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Add details about this job..."
+          placeholder="Add notes about this task..."
           rows={3}
           className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white placeholder-slate-500 outline-none focus:border-cyan-300/40 focus:ring-1 focus:ring-cyan-300/40"
         />
@@ -158,10 +142,16 @@ export function NewJobForm({ projects, taskTypes, onJobCreated }: NewJobFormProp
 
       <button
         type="submit"
-        disabled={isLoading || projects.length === 0}
+        disabled={isLoading || projects.length === 0 || taskTypes.length === 0}
         className="w-full rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isLoading ? 'Creating...' : projects.length === 0 ? 'Create a project first' : 'Create Job'}
+        {isLoading
+          ? 'Creating...'
+          : projects.length === 0
+            ? 'No project available'
+            : taskTypes.length === 0
+              ? 'No task types available'
+              : 'Create Task'}
       </button>
     </form>
   );

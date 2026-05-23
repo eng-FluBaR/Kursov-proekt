@@ -57,17 +57,17 @@ export default function JobsPage() {
   return (
     <div className="space-y-6">
       <SectionHeading
-        eyebrow="Jobs"
-        title="Manage your jobs"
-        description="Create new jobs, track their progress, and start timers directly from here."
+        eyebrow="Tasks"
+        title="Manage your tasks"
+        description="Create tasks by name and type, track their progress, and start timers directly from here."
       />
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <Panel className="p-6">
           <SectionHeading
-            eyebrow="All jobs"
-            title="Your job list"
-            description="View and manage all your current jobs."
+            eyebrow="All tasks"
+            title="Your task list"
+            description="View and manage all your current tasks."
           />
           <JobsList refreshToken={refreshToken} />
         </Panel>
