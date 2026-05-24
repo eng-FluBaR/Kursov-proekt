@@ -1,3 +1,4 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -299,6 +300,11 @@ export default function JobsScreen() {
     setNotes(job.description ?? '');
   }
 
+  function clearFilters() {
+    setSearch('');
+    setTypeFilter('all');
+  }
+
   return (
     <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
       <ScrollView ref={scrollRef} style={styles.scroll}>
@@ -342,16 +348,44 @@ export default function JobsScreen() {
           ) : null}
         </View>
 
-        <View style={styles.controlBlock}>
-          <Text style={[styles.fieldLabel, isDark && styles.textMuted]}>Task list</Text>
-          <SimpleSelect value={view} options={viewOptions} onChange={setView} />
-        </View>
+        <View style={[styles.filterCard, isDark && styles.cardDark]}>
+          <View style={styles.filterHeader}>
+            <View style={styles.filterTitleRow}>
+              <View style={[styles.filterIcon, isDark && styles.filterIconDark]}>
+                <MaterialIcons name="filter-list" size={18} color={isDark ? '#cffafe' : '#0e7490'} />
+              </View>
+              <View>
+                <Text style={[styles.sectionTitle, isDark && styles.textLight]}>Filters</Text>
+                <Text style={[styles.resultCount, isDark && styles.textMuted]}>{visibleJobs.length} tasks shown</Text>
+              </View>
+            </View>
+            {(search.trim() || typeFilter !== 'all') ? (
+              <TouchableOpacity style={[styles.clearFiltersButton, isDark && styles.secondaryButtonDark]} onPress={clearFilters}>
+                <Text style={[styles.clearFiltersText, isDark && styles.secondaryTextDark]} numberOfLines={1}>Clear</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
 
-        <View style={styles.filters}>
-          <TextInput style={[styles.input, isDark && styles.inputDark]} placeholder="Search jobs" placeholderTextColor={isDark ? '#64748b' : undefined} value={search} onChangeText={setSearch} />
           <View style={styles.controlBlock}>
-            <Text style={[styles.fieldLabel, isDark && styles.textMuted]}>Task type</Text>
-            <SimpleSelect value={typeFilter} options={filterOptions} onChange={setTypeFilter} />
+            <Text style={[styles.fieldLabel, isDark && styles.textMuted]}>Task list</Text>
+            <SimpleSelect value={view} options={viewOptions} onChange={setView} />
+          </View>
+
+          <View style={styles.filters}>
+            <View style={[styles.searchBox, isDark && styles.inputDark]}>
+              <MaterialIcons name="search" size={18} color={isDark ? '#94a3b8' : '#64748b'} />
+              <TextInput
+                style={[styles.searchInput, isDark && styles.searchInputDark]}
+                placeholder="Search by task, project or owner"
+                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                value={search}
+                onChangeText={setSearch}
+              />
+            </View>
+            <View style={styles.controlBlock}>
+              <Text style={[styles.fieldLabel, isDark && styles.textMuted]}>Task type</Text>
+              <SimpleSelect value={typeFilter} options={filterOptions} onChange={setTypeFilter} />
+            </View>
           </View>
         </View>
 
@@ -484,7 +518,18 @@ const styles = StyleSheet.create({
   scroll: { padding: 16 },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 16, color: '#111827' },
   controlBlock: { gap: 8 },
-  filters: { gap: 12, marginVertical: 16 },
+  filterCard: { gap: 14, backgroundColor: '#f8fafc', borderRadius: 14, borderWidth: 1, borderColor: '#dbeafe', padding: 14, marginBottom: 16 },
+  filterHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  filterTitleRow: { minWidth: 0, flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  filterIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#cffafe' },
+  filterIconDark: { backgroundColor: '#164e63' },
+  resultCount: { marginTop: 2, color: '#64748b', fontSize: 12, fontWeight: '700' },
+  clearFiltersButton: { borderRadius: 10, borderWidth: 1, borderColor: '#cbd5e1', backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8 },
+  clearFiltersText: { color: '#111827', fontSize: 12, fontWeight: '800' },
+  filters: { gap: 12 },
+  searchBox: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, paddingHorizontal: 12, backgroundColor: '#fff' },
+  searchInput: { flex: 1, color: '#111827', fontSize: 14, fontWeight: '600', paddingVertical: 10 },
+  searchInputDark: { color: '#f8fafc' },
   timerCard: { gap: 14, backgroundColor: '#f8fafc', borderRadius: 16, borderWidth: 1, borderColor: '#e5e7eb', padding: 16, marginBottom: 16 },
   timerHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   timerTitleWrap: { flex: 1 },
