@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 
+import { PreviewHint, usePreviewMode } from './preview-hint';
+
 type Job = {
   id: string;
   projectName: string;
@@ -18,6 +20,7 @@ type NewJobFormProps = {
 };
 
 export function NewJobForm({ projects, taskTypes, onJobCreated }: NewJobFormProps) {
+  const { isPreviewMode } = usePreviewMode();
   const [taskTypeId, setTaskTypeId] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -92,10 +95,14 @@ export function NewJobForm({ projects, taskTypes, onJobCreated }: NewJobFormProp
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-white/10 bg-slate-950/60 p-6">
       <h3 className="text-lg font-semibold text-white">Create New Task</h3>
+      <PreviewHint compact>
+        Тук след login се създава задача: избираш тип работа, пишеш име и добавяш кратки бележки за контекст.
+      </PreviewHint>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-2">
           <span className="text-sm text-slate-300">Task name</span>
+          {isPreviewMode ? <span className="block text-xs leading-5 text-slate-400">Името е основният етикет на задачата в списъци, календар и отчети.</span> : null}
           <input
             type="text"
             value={title}
@@ -108,6 +115,7 @@ export function NewJobForm({ projects, taskTypes, onJobCreated }: NewJobFormProp
 
         <label className="space-y-2">
           <span className="text-sm text-slate-300">Task type</span>
+          {isPreviewMode ? <span className="block text-xs leading-5 text-slate-400">Типът групира времето по дейност, например modeling, printing или review.</span> : null}
           <select
             value={selectedTaskTypeId}
             onChange={(e) => setTaskTypeId(e.target.value)}
@@ -129,6 +137,7 @@ export function NewJobForm({ projects, taskTypes, onJobCreated }: NewJobFormProp
 
       <label className="space-y-2">
         <span className="text-sm text-slate-300">Notes / description (optional)</span>
+        {isPreviewMode ? <span className="block text-xs leading-5 text-slate-400">Бележките пазят изисквания, настройки, блокери или инструкции към задачата.</span> : null}
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}

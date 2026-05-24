@@ -5,6 +5,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { DashboardTimer } from '@/components/dashboard-timer';
 import { JobsList } from '@/components/jobs-list';
 import { NewJobForm } from '@/components/new-job-form';
+import { PreviewHint } from '@/components/preview-hint';
 import { Panel, SectionHeading } from '@/components/workspace-ui';
 
 type ProjectResponse = {
@@ -89,6 +90,9 @@ export default function JobsPage() {
         title="Manage your tasks"
         description="Create tasks by name and type, track their progress, and start timers directly from here."
       />
+      <PreviewHint title="Review mode">
+        Тази страница показва как се управляват задачите: timer за текуща работа, списък със статуси и форма за нова задача.
+      </PreviewHint>
 
       <Panel className="p-6">
         <Suspense fallback={<div className="text-slate-300">Loading timer...</div>}>
@@ -100,6 +104,9 @@ export default function JobsPage() {
         <Panel className="p-6">
           <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
             <SectionHeading eyebrow="Task view" title={currentView.title} description={currentView.description} />
+            <PreviewHint compact className="xl:max-w-sm">
+              Табовете филтрират задачите по статус: активни, паузирани или споделени от друг потребител.
+            </PreviewHint>
             <div className="flex rounded-2xl border border-white/10 bg-slate-950/60 p-1">
               {taskViews.map((view) => (
                 <button

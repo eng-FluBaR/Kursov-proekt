@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+import { PreviewHint } from '@/components/preview-hint';
 import { Panel, SectionHeading } from '@/components/workspace-ui';
 
 type Job = {
@@ -67,11 +68,17 @@ export default function CalendarPage() {
         title={today.toLocaleString('en-US', { month: 'long', year: 'numeric' })}
         description="Only tasks created by the current user are marked here."
       />
+      <PreviewHint title="Review mode">
+        Calendar показва кога са създадени задачите и дава бърз достъп към детайлите им по дни.
+      </PreviewHint>
 
       {error ? <div className="rounded-2xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">{error}</div> : null}
 
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <Panel className="p-6">
+          <PreviewHint compact className="mb-4">
+            Дните с badge имат задачи. След login клик върху задача отваря нейния детайлен изглед.
+          </PreviewHint>
           <div className="grid grid-cols-7 gap-2 text-center text-xs uppercase tracking-[0.22em] text-slate-400">
             {weekdays.map((day) => <div key={day}>{day}</div>)}
           </div>
@@ -102,6 +109,9 @@ export default function CalendarPage() {
 
         <Panel className="p-6">
           <SectionHeading eyebrow="Created tasks" title="This month" description="A compact list of your own tasks created in the selected month." />
+          <PreviewHint compact className="mb-4">
+            Филтърът по тип помага да намериш конкретна работа, например print, model или review.
+          </PreviewHint>
           <div className="space-y-3">
             {upcoming.length === 0 ? <p className="text-sm text-slate-400">No tasks created this month.</p> : null}
             <div className="mb-4">

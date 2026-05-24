@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { DashboardUserStats } from '@/components/dashboard-user-stats';
+import { PreviewHint } from '@/components/preview-hint';
 import { Panel, SectionHeading } from '@/components/workspace-ui';
 
 type TimeEntry = {
@@ -108,6 +109,9 @@ export default function AnalyticsPage() {
         title="Your work overview"
         description="These numbers are calculated only from your own tracked time."
       />
+      <PreviewHint title="Review mode">
+        Analytics обобщава записаното време: общи часове, активни задачи, завършени задачи и разпределение по тип работа.
+      </PreviewHint>
 
       <DashboardUserStats />
 
@@ -116,6 +120,9 @@ export default function AnalyticsPage() {
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <Panel className="p-6">
           <SectionHeading eyebrow="Task types" title="Time by task type" description="A breakdown of where your tracked minutes went." />
+          <PreviewHint compact className="mb-4">
+            Тези ленти показват за кои типове дейности е отишло най-много време.
+          </PreviewHint>
           {isLoading ? (
             <p className="py-8 text-center text-sm text-slate-300">Loading analytics...</p>
           ) : taskTypeRows.length === 0 ? (
@@ -139,6 +146,9 @@ export default function AnalyticsPage() {
 
         <Panel className="p-6">
           <SectionHeading eyebrow="Share" title="Task type split" description="Percent of your total tracked time." />
+          <PreviewHint compact className="mb-4">
+            Кръговата графика превръща същите данни в проценти, удобни за бърз отчет.
+          </PreviewHint>
           <div className="flex flex-col items-center gap-5">
             <div className="relative h-52 w-52 rounded-full" style={donutStyle}>
               <div className="absolute inset-[28px] rounded-full border border-white/10 bg-slate-950/90" />
@@ -163,6 +173,9 @@ export default function AnalyticsPage() {
 
       <Panel className="p-6">
         <SectionHeading eyebrow="Recent days" title="Tracked time per day" description="The last days with recorded work sessions." />
+        <PreviewHint compact className="mb-4">
+          Дневната графика помага да видиш кога е имало най-много реална работа.
+        </PreviewHint>
         <div className="grid min-h-48 grid-cols-7 items-end gap-3 md:grid-cols-[repeat(14,minmax(0,1fr))]">
           {recentDayRows.length === 0 ? (
             <p className="col-span-full py-8 text-center text-sm text-slate-400">No daily activity yet.</p>

@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
+import { PreviewHint } from './preview-hint';
+
 type Option = {
   id: string;
   label: string;
@@ -250,6 +252,9 @@ export function DashboardTimer(props: { projects: Option[]; taskTypes: Option[] 
   return (
     <div className="grid gap-4 lg:grid-cols-[1.3fr_0.9fr]">
       <div className="rounded-3xl border border-white/10 bg-slate-950/60 p-6">
+        <PreviewHint title="Timer preview" className="mb-5">
+          След login избираш активна задача, стартираш таймера и при Stop времето се записва към конкретната задача.
+        </PreviewHint>
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.26em] text-slate-400">Active timer</p>
