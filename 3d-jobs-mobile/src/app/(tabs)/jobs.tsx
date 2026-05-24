@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { SelectOption, SimpleSelect } from '@/components/simple-select';
@@ -33,6 +33,7 @@ function formatElapsed(totalSeconds: number) {
 export default function JobsScreen() {
   const { token } = useAuth();
   const { isDark } = useAppTheme();
+  const scrollRef = useRef<ScrollView>(null);
   const [view, setView] = useState<JobView>('active');
   const [jobs, setJobs] = useState<Job[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -255,6 +256,9 @@ export default function JobsScreen() {
       setTimerJobId(selectedTimerJob.id);
       setElapsed(0);
       setStatus(`Timer started for ${selectedTimerJob.title}.`);
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
+      });
     } catch (caughtError) {
       setStatus(caughtError instanceof Error ? caughtError.message : 'Could not start timer.');
     } finally {
@@ -290,7 +294,7 @@ export default function JobsScreen() {
 
   return (
     <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
-      <ScrollView style={styles.scroll}>
+      <ScrollView ref={scrollRef} style={styles.scroll}>
         <AppMenu title="Jobs" />
         <Text style={[styles.title, isDark && styles.textLight]}>Jobs</Text>
         {!token ? (
