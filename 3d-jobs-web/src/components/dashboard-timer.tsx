@@ -211,6 +211,13 @@ export function DashboardTimer(props: { projects: Option[]; taskTypes: Option[] 
       }
 
       setActiveEntry(null);
+      if (data.entry?.jobId && data.entry.durationMinutes !== null) {
+        setActiveJobs((currentJobs) => currentJobs.map((job) => (
+          job.id === data.entry?.jobId
+            ? { ...job, totalDurationMinutes: (job.totalDurationMinutes ?? 0) + (data.entry.durationMinutes ?? 0) }
+            : job
+        )));
+      }
       setElapsed(0);
       setRunning(false);
     } catch (err) {

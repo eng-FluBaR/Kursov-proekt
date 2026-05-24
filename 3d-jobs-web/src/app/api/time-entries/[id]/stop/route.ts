@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 import { timeEntries } from '@3d-jobs/db/src/schema';
@@ -24,7 +24,7 @@ export async function PATCH(
     const [entry] = await db
       .select()
       .from(timeEntries)
-      .where(eq(timeEntries.id, id))
+      .where(and(eq(timeEntries.id, id), eq(timeEntries.userId, authUser.id)))
       .limit(1);
 
     console.log('Found entry:', entry);
@@ -34,12 +34,8 @@ export async function PATCH(
       return NextResponse.json({ error: 'Entry not found' }, { status: 404 });
     }
 
-    if (entry.userId !== authUser.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
-
     const durationMs = now.getTime() - new Date(entry.startedAt).getTime();
-    const durationMinutes = Math.round(durationMs / 60000);
+    const durationMinutes = Math.max(1, Math.ceil(durationMs / 60000));
 
     console.log('Updating entry duration:', durationMinutes, 'minutes');
 

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { AuthUser } from '@/lib/auth-session';
 import { ProjectDot } from './workspace-ui';
@@ -31,6 +31,89 @@ function isActive(pathname: string, href: string) {
   }
 
   return pathname === href;
+}
+
+type TimeEntry = {
+  startedAt: string;
+  endedAt: string | null;
+  durationMinutes: number | null;
+};
+
+function formatTodayMinutes(totalMinutes: number) {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
+}
+
+function getTodayKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function TodaySummary() {
+  const [todayMinutes, setTodayMinutes] = useState(0);
+  const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  const loadToday = useCallback(async () => {
+    try {
+      const [entriesResponse, activeResponse] = await Promise.all([
+        fetch('/api/time-entries'),
+        fetch('/api/time-entries/active'),
+      ]);
+
+      if (!entriesResponse.ok) {
+        return;
+      }
+
+      const entriesData = (await entriesResponse.json()) as { entries?: TimeEntry[]; timeEntries?: TimeEntry[] };
+      const entries = entriesData.entries ?? entriesData.timeEntries ?? [];
+      const todayKey = getTodayKey(new Date());
+      const completedMinutes = entries
+        .filter((entry) => getTodayKey(new Date(entry.startedAt)) === todayKey)
+        .reduce((sum, entry) => sum + (entry.durationMinutes ?? 0), 0);
+
+      setTodayMinutes(completedMinutes);
+
+      if (activeResponse.ok) {
+        const activeData = (await activeResponse.json()) as { entry: TimeEntry | null };
+        setActiveEntry(activeData.entry);
+      }
+    } catch (error) {
+      console.error('Failed to load today summary:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    void Promise.resolve().then(loadToday);
+
+    window.addEventListener('focus', loadToday);
+    return () => window.removeEventListener('focus', loadToday);
+  }, [loadToday]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const activeMinutes = activeEntry && getTodayKey(new Date(activeEntry.startedAt)) === getTodayKey(new Date(now))
+    ? Math.floor(Math.max(0, now - new Date(activeEntry.startedAt).getTime()) / 60000)
+    : 0;
+  const totalMinutes = todayMinutes + activeMinutes;
+  const progressPercent = Math.min(100, Math.round((totalMinutes / (8 * 60)) * 100));
+
+  return (
+    <div className="rounded-[28px] border border-white/10 bg-white/6 p-5">
+      <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Today</p>
+      <p className="mt-3 text-2xl font-semibold text-white">{formatTodayMinutes(totalMinutes)}</p>
+      <p className="mt-2 text-sm text-slate-300">{progressPercent}% of 8h target complete</p>
+      <div className="mt-4 h-2 rounded-full bg-white/8">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-amber-300"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+    </div>
+  );
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -78,14 +161,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className={`min-h-screen ${theme === 'light' ? 'light-theme bg-slate-100' : 'bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.12),_transparent_24%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.14),_transparent_20%),linear-gradient(180deg,#08111f_0%,#050b16_100%)]'}`}>
       <div className="mx-auto flex min-h-screen max-w-[1640px]">
         <aside className="hidden w-80 flex-col border-r border-white/10 bg-slate-950/55 px-6 py-6 backdrop-blur xl:flex">
-          <div className="rounded-[28px] border border-white/10 bg-white/6 p-5">
-            <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Today</p>
-            <p className="mt-3 text-2xl font-semibold text-white">07h 42m</p>
-            <p className="mt-2 text-sm text-slate-300">92% of target complete</p>
-            <div className="mt-4 h-2 rounded-full bg-white/8">
-              <div className="h-full w-[92%] rounded-full bg-gradient-to-r from-cyan-400 to-amber-300" />
-            </div>
-          </div>
+          <TodaySummary />
 
           <nav className="mt-6 space-y-2">
             {visibleDesktopNav.map((item) => {

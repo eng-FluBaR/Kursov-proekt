@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, or } from 'drizzle-orm';
+import { and, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 import { jobVisibilityPermissions, jobs, projects, taskTypes, timeEntries, users } from '@3d-jobs/db/src/schema';
@@ -254,10 +254,28 @@ export async function GET(request: Request) {
       .where(and(...conditions))
       .orderBy(desc(jobs.createdAt));
 
+    const jobIds = jobsList.map((job) => job.id);
+    const durationRows = jobIds.length > 0
+      ? await db
+          .select({
+            jobId: timeEntries.jobId,
+            totalDurationMinutes: sql<number>`coalesce(sum(${timeEntries.durationMinutes}), 0)`,
+          })
+          .from(timeEntries)
+          .where(inArray(timeEntries.jobId, jobIds))
+          .groupBy(timeEntries.jobId)
+      : [];
+    const durationByJobId = new Map(
+      durationRows
+        .filter((row) => row.jobId)
+        .map((row) => [row.jobId as string, Number(row.totalDurationMinutes) || 0]),
+    );
+
     return NextResponse.json({
       jobs: jobsList.map((job) => ({
         ...job,
         isShared: job.userId !== authUser.id,
+        totalDurationMinutes: durationByJobId.get(job.id) ?? 0,
       })),
     });
   }

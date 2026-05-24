@@ -1,7 +1,7 @@
-import { and, eq, inArray, or } from 'drizzle-orm';
+import { and, eq, inArray, or, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
-import { jobs, projects, taskTypes } from '@3d-jobs/db/src/schema';
+import { jobs, projects, taskTypes, timeEntries } from '@3d-jobs/db/src/schema';
 import { getRequestAuthUser } from '@/lib/auth-session';
 import { getDb } from '@/lib/db';
 import { getUserAccessibleTaskIds } from '@/lib/permissions';
@@ -150,7 +150,29 @@ export async function GET(request: Request) {
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(jobs.createdAt);
 
-    return NextResponse.json({ jobs: jobsList });
+    const jobIds = jobsList.map((job) => job.id);
+    const durationRows = jobIds.length > 0
+      ? await db
+          .select({
+            jobId: timeEntries.jobId,
+            totalDurationMinutes: sql<number>`coalesce(sum(${timeEntries.durationMinutes}), 0)`,
+          })
+          .from(timeEntries)
+          .where(inArray(timeEntries.jobId, jobIds))
+          .groupBy(timeEntries.jobId)
+      : [];
+    const durationByJobId = new Map(
+      durationRows
+        .filter((row) => row.jobId)
+        .map((row) => [row.jobId as string, Number(row.totalDurationMinutes) || 0]),
+    );
+
+    return NextResponse.json({
+      jobs: jobsList.map((job) => ({
+        ...job,
+        totalDurationMinutes: durationByJobId.get(job.id) ?? 0,
+      })),
+    });
   } catch (error) {
     console.error('Failed to fetch jobs:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch jobs';
