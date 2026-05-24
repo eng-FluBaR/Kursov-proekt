@@ -102,30 +102,64 @@ npm run lint         # Lint web and mobile workspaces
 
 ## 4. System Architecture
 
-```text
-Browser / Expo Mobile
-        |
-        v
-Next.js Web App + Route Handlers
-        |
-        v
-Auth/session helpers + permission helpers
-        |
-        v
-Drizzle ORM
-        |
-        v
-Neon PostgreSQL
+### 4.1 High-Level Architecture
+
+```mermaid
+flowchart LR
+  web[Web Browser] --> next[Next.js Web App]
+  mobile[Expo Mobile App] --> api[Next.js API Routes]
+  next --> api
+  api --> auth[Auth Session Helpers]
+  api --> perms[Permission Helpers]
+  api --> drizzle[Drizzle ORM]
+  auth --> users[(users)]
+  perms --> grants[(visibility permissions)]
+  drizzle --> neon[(Neon PostgreSQL)]
+  neon --> users
+  neon --> grants
 ```
 
-### Frontend Access Guarding
+### 4.2 Workspace Boundaries
+
+```mermaid
+flowchart TB
+  root[Root npm workspace]
+  root --> webws[3d-jobs-web]
+  root --> mobilews[3d-jobs-mobile]
+  root --> dbws[packages/db]
+  root --> sharews[3d-jobs-share]
+
+  webws --> pages[App Router pages]
+  webws --> routes[API route handlers]
+  webws --> webui[Web components]
+  mobilews --> screens[Expo Router screens]
+  mobilews --> mobileapi[Mobile API client]
+  dbws --> schema[Drizzle schema]
+  dbws --> migrations[SQL migrations]
+
+  routes --> schema
+  mobileapi --> routes
+```
+
+### 4.3 Runtime Responsibilities
+
+| Area | Responsibility | Primary Files |
+| --- | --- | --- |
+| Web UI | Pages, dashboards, admin workspace, project/job screens | `3d-jobs-web/src/app/`, `3d-jobs-web/src/components/` |
+| API server | Auth, jobs, time entries, mobile endpoints, admin endpoints | `3d-jobs-web/src/app/api/` |
+| Auth/session | Signed session payloads, cookie/Bearer parsing | `3d-jobs-web/src/lib/auth-session.ts` |
+| Permissions | User visibility and job sharing rules | `3d-jobs-web/src/lib/permissions.ts`, `3d-jobs-web/src/lib/job-permissions.ts` |
+| Database layer | Schema, migrations, seed data | `packages/db/` |
+| Mobile app | Native/mobile screens and API consumption | `3d-jobs-mobile/src/` |
+
+### 4.4 Frontend Access Guarding
 
 - Public pages are available for unauthenticated visitors.
 - App pages read `/api/auth/me` and render role-aware navigation.
 - Admin navigation is shown only when the authenticated user has the `admin` role.
 - API routes perform server-side auth checks and return `401` or `403` when needed.
 
-### API Access Pattern
+### 4.5 API Access Pattern
 
 - Web requests primarily use the `tasktimer_user` HTTP-only cookie.
 - Mobile requests use `Authorization: Bearer <token>` when a token is available.
@@ -133,7 +167,109 @@ Neon PostgreSQL
 
 ## 5. Database Model
 
-### 5.1 Operational Data Dictionary
+### 5.1 ER Diagram
+
+```mermaid
+erDiagram
+  users ||--o{ projects : owns
+  users ||--o{ jobs : owns
+  users ||--o{ time_entries : tracks
+  users ||--o{ job_files : uploads
+  users ||--o{ task_visibility_permissions : grants
+  users ||--o{ task_visibility_permissions : views
+  users ||--o{ task_visibility_permissions : subject
+  users ||--o{ job_visibility_permissions : grants
+  users ||--o{ job_visibility_permissions : views
+
+  projects ||--o{ jobs : contains
+  projects ||--o{ time_entries : groups
+  task_types ||--o{ jobs : classifies
+  task_types ||--o{ time_entries : classifies
+  jobs ||--o{ time_entries : records
+  jobs ||--o{ job_files : has
+  jobs ||--o{ job_visibility_permissions : shared_as
+  time_entries ||--o{ entry_files : has
+
+  users {
+    uuid id PK
+    varchar email
+    varchar password_hash
+    role role
+    timestamptz created_at
+  }
+
+  projects {
+    uuid id PK
+    uuid user_id FK
+    varchar name
+    varchar color
+    text description
+    boolean archived
+    timestamptz created_at
+  }
+
+  task_types {
+    uuid id PK
+    varchar name
+    varchar icon
+  }
+
+  jobs {
+    uuid id PK
+    uuid user_id FK
+    uuid project_id FK
+    uuid task_type_id FK
+    varchar title
+    text description
+    varchar status
+    timestamptz created_at
+  }
+
+  time_entries {
+    uuid id PK
+    uuid user_id FK
+    uuid project_id FK
+    uuid job_id FK
+    uuid task_type_id FK
+    timestamptz started_at
+    timestamptz ended_at
+    integer duration_minutes
+    text note
+  }
+
+  entry_files {
+    uuid id PK
+    uuid time_entry_id FK
+    file_type file_type
+    varchar storage_key
+    varchar original_name
+  }
+
+  job_files {
+    uuid id PK
+    uuid job_id FK
+    uuid uploader_id FK
+    varchar file_type
+    varchar storage_key
+    varchar original_name
+  }
+
+  task_visibility_permissions {
+    uuid id PK
+    uuid grantor_id FK
+    uuid viewer_id FK
+    uuid subject_id FK
+  }
+
+  job_visibility_permissions {
+    uuid id PK
+    uuid grantor_id FK
+    uuid viewer_id FK
+    uuid job_id FK
+  }
+```
+
+### 5.2 Operational Data Dictionary
 
 | Table | Purpose | Key Relations | Notes |
 | --- | --- | --- | --- |
@@ -147,7 +283,20 @@ Neon PostgreSQL
 | `task_visibility_permissions` | User-to-user task visibility grants | grantor/viewer/subject all reference `users.id` | Allows one user to view another user's tasks when granted. |
 | `job_visibility_permissions` | Job-specific sharing grants | grantor/viewer reference users, `job_id -> jobs.id` | Allows sharing individual jobs without exposing every task. |
 
-### 5.2 Migration Source
+### 5.3 Index and Constraint Overview
+
+| Table | Important Indexes / Constraints | Operational Meaning |
+| --- | --- | --- |
+| `users` | unique email | Prevents duplicate accounts for the same email address. |
+| `projects` | `idx_projects_user_id` | Fast lookup of a user's projects. |
+| `jobs` | `idx_jobs_user_id`, `idx_jobs_project_id` | Fast filtering by owner and project. |
+| `time_entries` | `idx_time_entries_user_id`, `idx_time_entries_project_id`, `idx_time_entries_job_id`, `idx_time_entries_started_at` | Supports dashboards, history, calendar, and job totals. |
+| `entry_files` | `idx_entry_files_time_entry_id` | Fetches files attached to a time entry. |
+| `job_files` | `idx_job_files_job_id`, `idx_job_files_uploader_id` | Fetches files by job and uploader. |
+| `task_visibility_permissions` | viewer/subject indexes and unique-style viewer-subject index | Supports user-to-user sharing checks. |
+| `job_visibility_permissions` | grantor/viewer/job indexes and unique-style viewer-job index | Supports job-specific sharing checks. |
+
+### 5.4 Migration Source
 
 The Drizzle schema lives in:
 
@@ -188,23 +337,31 @@ packages/db/drizzle/
 | Admin workspace | no | no | yes |
 | User and permission management | no | no | yes |
 
+### Route Protection Matrix
+
+| Route/API group | Access Rule | Notes |
+| --- | --- | --- |
+| `/`, `/login`, `/register` | Public | Entry points for visitors and new users. |
+| `/dashboard`, `/analytics`, `/jobs`, `/calendar`, `/projects`, `/settings` | Authenticated user | UI is role-aware and API calls still enforce server-side checks. |
+| `/admin` | Admin only | Hidden from standard users in navigation. |
+| `/api/auth/*` | Public or session-aware | Login/register are public; `/me` reads current auth state. |
+| `/api/jobs/*` | Authenticated user with owner/shared checks | Supports job CRUD and job files. |
+| `/api/time-entries/*` | Authenticated user with owner/shared checks | Supports active timer and history workflows. |
+| `/api/mobile/*` | Mobile authenticated/API compatible | Uses Bearer auth pattern from the Expo client. |
+| `/api/admin/*` | Admin only | Uses role checks before operational actions. |
+
 ## 7. Job and Time Entry Lifecycle
 
 ### Job Lifecycle
 
-```text
-Create job
-   |
-   v
-active
-   |
-   +--> paused
-   |       |
-   |       v
-   |     active
-   |
-   v
-completed
+```mermaid
+stateDiagram-v2
+  [*] --> active: create job
+  active --> paused: pause work
+  paused --> active: resume work
+  active --> completed: complete job
+  paused --> completed: complete without resume
+  completed --> [*]
 ```
 
 Lifecycle notes:
@@ -216,17 +373,12 @@ Lifecycle notes:
 
 ### Time Entry Lifecycle
 
-```text
-Start timer
-   |
-   v
-time_entries row with ended_at = null
-   |
-   v
-Stop timer
-   |
-   v
-ended_at and duration_minutes are stored
+```mermaid
+stateDiagram-v2
+  [*] --> running: start timer
+  running --> stopped: stop timer
+  stopped --> persisted: store ended_at and duration_minutes
+  persisted --> [*]
 ```
 
 Lifecycle notes:
@@ -239,54 +391,78 @@ Lifecycle notes:
 
 ### 8.1 Authentication Flow
 
-```text
-Register/Login form
-   |
-   v
-Next.js auth route
-   |
-   v
-Validate credentials / hash password
-   |
-   v
-Create signed auth session
-   |
-   v
-Web cookie or mobile Bearer token
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant C as Web/Mobile Client
+  participant A as Auth API
+  participant DB as Neon PostgreSQL
+
+  U->>C: Submit login/register
+  C->>A: POST auth request
+  A->>DB: Read/create user
+  DB-->>A: User record
+  A->>A: Verify password or hash new password
+  A->>A: Create signed session payload
+  A-->>C: Set cookie or return token-compatible user data
+  C-->>U: Open authenticated workspace
 ```
 
 ### 8.2 Timer Flow
 
-```text
-User selects project/job/task type
-   |
-   v
-POST /api/time-entries
-   |
-   v
-Active entry appears in dashboard/timer UI
-   |
-   v
-POST /api/time-entries/[id]/stop
-   |
-   v
-Completed duration appears in history, analytics, and job totals
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant C as Client
+  participant API as Time Entry API
+  participant DB as Neon PostgreSQL
+
+  U->>C: Select project/job/task type
+  C->>API: POST /api/time-entries
+  API->>DB: Insert open time entry
+  DB-->>API: Active entry
+  API-->>C: Active timer data
+  C-->>U: Show running timer
+  U->>C: Stop timer
+  C->>API: POST /api/time-entries/[id]/stop
+  API->>DB: Set ended_at and duration_minutes
+  DB-->>API: Completed entry
+  API-->>C: Updated history/totals data
 ```
 
 ### 8.3 Admin Sharing Flow
 
-```text
-Admin opens admin workspace
-   |
-   v
-Select viewer and subject user or specific job
-   |
-   v
-Create permission grant
-   |
-   v
-Viewer can see granted tasks/jobs in supported screens/API responses
+```mermaid
+flowchart TD
+  admin[Admin opens admin workspace]
+  select[Select viewer and subject user or job]
+  validate[API validates admin role and IDs]
+  grant[Create permission grant]
+  query[Viewer requests jobs/tasks]
+  merge[API merges owned and shared records]
+  result[Viewer sees granted records]
+
+  admin --> select --> validate --> grant --> query --> merge --> result
 ```
+
+### 8.4 API Endpoint Overview
+
+| Endpoint Group | Methods | Purpose | Auth |
+| --- | --- | --- | --- |
+| `/api/auth/register` | `POST` | Create user account | Public |
+| `/api/auth/login` | `POST` | Authenticate user | Public |
+| `/api/auth/logout` | `POST` | Clear web session | Session-aware |
+| `/api/auth/me` | `GET` | Return current user | Optional/session-aware |
+| `/api/jobs` | `GET`, `POST` | List and create jobs | User |
+| `/api/jobs/[id]` | `GET`, `PATCH`, `DELETE` | Read, update, or delete one job | Owner/shared/admin rules |
+| `/api/jobs/[id]/files` | `GET`, `POST` | List or attach job files | User |
+| `/api/jobs/[id]/files/[fileId]/download` | `GET` | Download job file metadata/content route | User with access |
+| `/api/time-entries` | `GET`, `POST` | List or create time entries | User |
+| `/api/time-entries/active` | `GET` | Find active timer entry | User |
+| `/api/time-entries/[id]/stop` | `POST` | Stop active timer | User |
+| `/api/mobile/*` | mixed | Mobile-optimized data endpoints | Mobile authenticated |
+| `/api/admin/*` | mixed | Users, stats, permissions, job sharing | Admin |
+| `/api/health/db` | `GET` | Database health check | Operational |
 
 ## 9. Project Structure
 
@@ -321,6 +497,12 @@ DATABASE_URL="postgresql://USER:PASSWORD@HOST/DB?sslmode=require"
 AUTH_SECRET="replace-with-a-long-random-secret"
 EXPO_PUBLIC_API_URL="http://localhost:3001"
 ```
+
+| Variable | Required | Used By | Purpose |
+| --- | --- | --- | --- |
+| `DATABASE_URL` | yes | Web API, Drizzle migrations, seed scripts | Neon PostgreSQL connection string. |
+| `AUTH_SECRET` | yes | Next.js auth/session helpers | Signs local app sessions. |
+| `EXPO_PUBLIC_API_URL` | yes for mobile | Expo mobile app | Base URL for the Next.js API server. |
 
 ### 10.2 Configuration Notes
 
@@ -400,6 +582,20 @@ http://localhost:3001
 
 ## 12. Build and Deployment
 
+### 12.0 Deployment Topology
+
+```mermaid
+flowchart LR
+  github[GitHub Repository] --> netlify[Netlify Build]
+  netlify --> nextprod[Next.js Web/API Deployment]
+  nextprod --> neon[(Neon PostgreSQL)]
+  expo[Expo Mobile App] --> nextprod
+  admin[Admin/User Browser] --> nextprod
+
+  env[Netlify Environment Variables] --> nextprod
+  migrations[Drizzle Migrations] --> neon
+```
+
 ### 12.1 Web Build
 
 ```bash
@@ -432,6 +628,16 @@ Production mobile builds should be handled through the chosen Expo/EAS workflow 
 - Run Drizzle migrations against the production Neon database before release.
 - Use a strong `AUTH_SECRET`; changing it invalidates existing signed sessions.
 - Add or update `netlify.toml` when deployment routing/build settings are finalized.
+
+Suggested Netlify settings when the project reaches deployment setup:
+
+| Setting | Suggested Value | Notes |
+| --- | --- | --- |
+| Base directory | repository root or `3d-jobs-web` | Depends on the final Netlify monorepo configuration. |
+| Build command | `npm run build:web` | Root command keeps workspace behavior explicit. |
+| Publish directory | `.next` or Netlify-managed Next output | Final value depends on Netlify's Next.js runtime setup. |
+| Environment variables | `DATABASE_URL`, `AUTH_SECRET`, mobile API URL if needed | Store production secrets only in Netlify, not in Git. |
+| Functions/runtime | Netlify Next.js runtime | Required for API routes/server rendering. |
 
 ## 13. Troubleshooting Guide
 
