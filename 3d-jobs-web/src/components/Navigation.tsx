@@ -8,18 +8,15 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { href: '/', label: 'Landing' },
-  { href: '/analytics', label: 'Analytics' },
-  { href: '/calendar', label: 'Calendar' },
-  { href: '/projects', label: 'Completed tasks' },
-  { href: '/admin', label: 'Admin' },
-  { href: '/settings', label: 'Settings' },
+  { href: '/', label: 'Home' },
+  { href: '/login', label: 'Login' },
+  { href: '/register', label: 'Register' },
 ];
 
 const tabItems = [
-  { href: '/analytics', label: 'Home' },
-  { href: '/projects', label: 'Done' },
-  { href: '/settings', label: 'Settings' },
+  { href: '/', label: 'Home' },
+  { href: '/login', label: 'Login' },
+  { href: '/register', label: 'Register' },
 ];
 
 export function Sidebar({ children }: SidebarProps) {
