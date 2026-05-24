@@ -1,10 +1,12 @@
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { SimpleSelect } from '@/components/simple-select';
+import { PreviewHint } from '@/components/preview-hint';
 import { useAuth } from '@/contexts/auth-context';
 import { apiRequest, Project, TaskType } from '@/lib/api';
+import { previewProjects, previewTaskTypes } from '@/lib/preview-data';
 
 function toIsoDateTime(date: string, time: string) {
   return new Date(`${date}T${time}:00`).toISOString();
@@ -42,6 +44,11 @@ export default function ManualEntryScreen() {
 
   const loadOptions = useCallback(async () => {
     if (!token) {
+      setProjects(previewProjects);
+      setTaskTypes(previewTaskTypes);
+      setProjectId((current) => current || previewProjects[0]?.id || '');
+      setTaskTypeId((current) => current || previewTaskTypes[0]?.id || '');
+      setIsLoading(false);
       return;
     }
 
@@ -67,6 +74,11 @@ export default function ManualEntryScreen() {
 
   async function saveEntry() {
     if (!token || !projectId || !taskTypeId) {
+      if (!token) {
+        setStatus('Login to save a manual entry.');
+        router.push('/login');
+        return;
+      }
       setStatus('Choose a project and task type first.');
       return;
     }
@@ -100,6 +112,11 @@ export default function ManualEntryScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scroll}>
         <Text style={styles.title}>Log Entry</Text>
+        {!token ? (
+          <PreviewHint>
+            Manual entries are for work you forgot to start with the timer. Pick project, task type, date, start/end time and notes.
+          </PreviewHint>
+        ) : null}
         {isLoading ? <ActivityIndicator /> : null}
         {status ? <Text style={styles.status}>{status}</Text> : null}
 
@@ -135,7 +152,7 @@ export default function ManualEntryScreen() {
         </View>
 
         <TouchableOpacity style={[styles.submitButton, isSaving && styles.buttonDisabled]} onPress={saveEntry} disabled={isSaving}>
-          <Text style={styles.submitButtonText}>{isSaving ? 'Saving...' : 'Save Entry'}</Text>
+          <Text style={styles.submitButtonText}>{isSaving ? 'Saving...' : token ? 'Save Entry' : 'Login to save'}</Text>
         </TouchableOpacity>
 
         <View style={styles.spacer} />

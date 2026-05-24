@@ -42,6 +42,9 @@ export default function RegisterScreen() {
         <TouchableOpacity style={[styles.button, isSubmitting && styles.buttonDisabled]} onPress={submit} disabled={isSubmitting}>
           <Text style={styles.buttonText}>{isSubmitting ? 'Creating...' : 'Create account'}</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.previewButton} onPress={() => router.replace('/(tabs)')}>
+          <Text style={styles.previewText}>Review app first</Text>
+        </TouchableOpacity>
 
         <Text style={styles.footer}>
           Already have an account? <Link href="/login" style={styles.link}>Login</Link>
@@ -62,6 +65,8 @@ const styles = StyleSheet.create({
   button: { marginTop: 8, borderRadius: 10, backgroundColor: '#2563eb', paddingVertical: 14, alignItems: 'center' },
   buttonDisabled: { opacity: 0.65 },
   buttonText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  previewButton: { borderWidth: 1, borderColor: '#bae6fd', borderRadius: 10, backgroundColor: '#ecfeff', paddingVertical: 13, alignItems: 'center' },
+  previewText: { color: '#0e7490', fontWeight: '800' },
   footer: { marginTop: 14, textAlign: 'center', color: '#6b7280' },
   link: { color: '#2563eb', fontWeight: '800' },
 });

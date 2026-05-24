@@ -43,6 +43,9 @@ export default function LoginScreen() {
           <TouchableOpacity style={[styles.button, isSubmitting && styles.buttonDisabled]} onPress={submit} disabled={isSubmitting}>
             <Text style={styles.buttonText}>{isSubmitting ? 'Signing in...' : 'Sign in'}</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.previewButton} onPress={() => router.replace('/(tabs)')}>
+            <Text style={styles.previewText}>Review app without login</Text>
+          </TouchableOpacity>
 
           <View style={styles.demoRow}>
             <TouchableOpacity onPress={() => { setEmail('admin@tasktimer.app'); setPassword('admin123'); }} style={styles.demoButton}>
@@ -76,6 +79,8 @@ const styles = StyleSheet.create({
   button: { marginTop: 8, borderRadius: 10, backgroundColor: '#2563eb', paddingVertical: 14, alignItems: 'center' },
   buttonDisabled: { opacity: 0.65 },
   buttonText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  previewButton: { borderWidth: 1, borderColor: '#bae6fd', borderRadius: 10, backgroundColor: '#ecfeff', paddingVertical: 13, alignItems: 'center' },
+  previewText: { color: '#0e7490', fontWeight: '800' },
   demoRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
   demoButton: { flex: 1, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 12, backgroundColor: '#f9fafb' },
   demoTitle: { fontWeight: '800', color: '#111827' },

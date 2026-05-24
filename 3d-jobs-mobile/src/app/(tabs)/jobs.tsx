@@ -1,10 +1,12 @@
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { SelectOption, SimpleSelect } from '@/components/simple-select';
-import { apiRequest, Job, Project, TaskType, TimeEntry } from '@/lib/api';
+import { PreviewHint } from '@/components/preview-hint';
+import { apiRequest, formatDuration, Job, Project, TaskType, TimeEntry } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
+import { previewJobs, previewProjects, previewTaskTypes } from '@/lib/preview-data';
 
 type JobView = 'active' | 'paused' | 'shared' | 'completed';
 
@@ -55,6 +57,15 @@ export default function JobsScreen() {
 
   const loadData = useCallback(async () => {
     if (!token) {
+      const previewVisibleJobs = view === 'shared'
+        ? previewJobs.map((job) => ({ ...job, isShared: true, ownerEmail: 'preview@tasktimer.app' }))
+        : previewJobs.filter((job) => job.status === view);
+      setJobs(previewVisibleJobs);
+      setProjects(previewProjects);
+      setTaskTypes(previewTaskTypes);
+      setProjectId((current) => current || previewProjects[0]?.id || '');
+      setTaskTypeId((current) => current || previewTaskTypes[0]?.id || '');
+      setIsLoading(false);
       return;
     }
 
@@ -92,6 +103,11 @@ export default function JobsScreen() {
 
   async function createJob() {
     if (!token || !projectId || !title.trim()) {
+      if (!token) {
+        setStatus('Login to create real jobs.');
+        router.push('/login');
+        return;
+      }
       setStatus('Choose project and enter task name.');
       return;
     }
@@ -123,6 +139,10 @@ export default function JobsScreen() {
 
   async function updateSelectedJob(nextStatus?: 'active' | 'paused' | 'completed') {
     if (!token || !selectedJob) {
+      if (!token) {
+        setStatus('Login to edit jobs.');
+        router.push('/login');
+      }
       return;
     }
 
@@ -150,6 +170,8 @@ export default function JobsScreen() {
 
   async function startTimer(job: Job) {
     if (!token) {
+      setStatus('Login to start and save a real timer.');
+      router.push('/login');
       return;
     }
 
@@ -188,6 +210,11 @@ export default function JobsScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scroll}>
         <Text style={styles.title}>Jobs</Text>
+        {!token ? (
+          <PreviewHint>
+            Browse sample tasks by status, search by name or type, and open details. Login to create, edit, share and track real tasks.
+          </PreviewHint>
+        ) : null}
 
         <SimpleSelect value={view} options={viewOptions} onChange={setView} />
 
@@ -199,9 +226,12 @@ export default function JobsScreen() {
         {view === 'active' ? (
           <View style={styles.createCard}>
             <Text style={styles.sectionTitle}>Create job</Text>
+            {!token ? <Text style={styles.helpText}>After login this form creates a task with project, task type, name and notes.</Text> : null}
             <SimpleSelect value={projectId} options={projectOptions} onChange={setProjectId} />
             <SimpleSelect value={taskTypeId} options={taskTypeOptions} onChange={setTaskTypeId} />
+            {!token ? <Text style={styles.helpText}>Task name is what appears in lists, calendar and reports.</Text> : null}
             <TextInput style={styles.input} placeholder="Task name" value={title} onChangeText={setTitle} />
+            {!token ? <Text style={styles.helpText}>Notes can hold print settings, requirements, blockers or client feedback.</Text> : null}
             <TextInput
               style={[styles.input, styles.textarea]}
               placeholder="Notes"
@@ -210,7 +240,7 @@ export default function JobsScreen() {
               multiline
             />
             <TouchableOpacity style={[styles.primaryButton, isSaving && styles.disabled]} onPress={createJob} disabled={isSaving}>
-              <Text style={styles.primaryText}>{isSaving ? 'Saving...' : 'Create job'}</Text>
+              <Text style={styles.primaryText}>{isSaving ? 'Saving...' : token ? 'Create job' : 'Login to create'}</Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -263,6 +293,7 @@ export default function JobsScreen() {
               <Text style={styles.badge}>{job.status}</Text>
             </View>
             <Text style={styles.meta}>{job.projectName} - {job.taskTypeName ?? 'No type'}</Text>
+            <Text style={styles.meta}>Tracked: {formatDuration(job.totalDurationMinutes ?? 0)}</Text>
             {job.isShared ? <Text style={styles.shared}>Shared by {job.ownerEmail ?? 'another user'}</Text> : null}
             <Text style={styles.meta}>Created {formatDate(job.createdAt)}</Text>
           </TouchableOpacity>
@@ -281,6 +312,7 @@ const styles = StyleSheet.create({
   filters: { gap: 12, marginVertical: 16 },
   createCard: { gap: 12, backgroundColor: '#f8fafc', borderRadius: 14, borderWidth: 1, borderColor: '#e5e7eb', padding: 14, marginBottom: 16 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  helpText: { color: '#64748b', fontSize: 12, lineHeight: 17 },
   input: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, backgroundColor: '#fff', color: '#111827' },
   textarea: { minHeight: 90, textAlignVertical: 'top' },
   status: { borderRadius: 10, backgroundColor: '#eff6ff', color: '#1d4ed8', padding: 12, marginBottom: 12 },

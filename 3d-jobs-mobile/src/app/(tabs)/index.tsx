@@ -1,9 +1,11 @@
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { useAuth } from '@/contexts/auth-context';
 import { apiRequest, formatDuration, Job, Project, TimeEntry } from '@/lib/api';
+import { previewJobs, previewProjects, previewTimeEntries } from '@/lib/preview-data';
+import { PreviewHint } from '@/components/preview-hint';
 
 export default function DashboardScreen() {
   const { token, user, logout } = useAuth();
@@ -15,6 +17,10 @@ export default function DashboardScreen() {
 
   const loadData = useCallback(async () => {
     if (!token) {
+      setProjects(previewProjects);
+      setEntries(previewTimeEntries);
+      setJobs(previewJobs);
+      setIsLoading(false);
       return;
     }
 
@@ -51,10 +57,15 @@ export default function DashboardScreen() {
             <Text style={styles.title}>Dashboard</Text>
             <Text style={styles.subtitle}>{user?.email}</Text>
           </View>
-          <TouchableOpacity onPress={logout} style={styles.logoutButton}>
-            <Text style={styles.logoutText}>Logout</Text>
+          <TouchableOpacity onPress={token ? logout : () => router.push('/login')} style={styles.logoutButton}>
+            <Text style={styles.logoutText}>{token ? 'Logout' : 'Login'}</Text>
           </TouchableOpacity>
         </View>
+        {!token ? (
+          <PreviewHint>
+            Mobile review mode shows sample projects, tracked time, jobs and recent entries. Login to sync with the web app and Neon database.
+          </PreviewHint>
+        ) : null}
 
         {isLoading ? <ActivityIndicator /> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}

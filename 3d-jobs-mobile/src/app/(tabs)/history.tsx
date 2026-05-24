@@ -3,8 +3,10 @@ import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SimpleSelect } from '@/components/simple-select';
+import { PreviewHint } from '@/components/preview-hint';
 import { useAuth } from '@/contexts/auth-context';
 import { apiRequest, formatDuration, Project, TimeEntry } from '@/lib/api';
+import { previewProjects, previewTimeEntries } from '@/lib/preview-data';
 
 export default function HistoryScreen() {
   const { token } = useAuth();
@@ -24,6 +26,9 @@ export default function HistoryScreen() {
 
   const loadData = useCallback(async () => {
     if (!token) {
+      setProjects(previewProjects);
+      setEntries(previewTimeEntries);
+      setIsLoading(false);
       return;
     }
 
@@ -54,6 +59,11 @@ export default function HistoryScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scroll}>
         <Text style={styles.title}>History</Text>
+        {!token ? (
+          <PreviewHint>
+            History shows saved sessions, duration, notes and project filters. Login to see your real time entries.
+          </PreviewHint>
+        ) : null}
 
         <View style={styles.filterSection}>
           <Text style={styles.label}>Filter by Project</Text>

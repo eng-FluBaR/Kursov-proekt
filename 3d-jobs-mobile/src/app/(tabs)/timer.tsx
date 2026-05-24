@@ -1,10 +1,12 @@
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { SimpleSelect } from '@/components/simple-select';
+import { PreviewHint } from '@/components/preview-hint';
 import { useAuth } from '@/contexts/auth-context';
-import { apiRequest, Job, TimeEntry } from '@/lib/api';
+import { apiRequest, formatDuration, Job, TimeEntry } from '@/lib/api';
+import { previewJobs } from '@/lib/preview-data';
 
 function formatElapsed(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600);
@@ -34,6 +36,13 @@ export default function TimerScreen() {
 
   const loadTimer = useCallback(async () => {
     if (!token) {
+      const activeJobs = previewJobs.filter((job) => job.status === 'active');
+      setJobs(activeJobs);
+      setSelectedJobId((current) => current || activeJobs[0]?.id || '');
+      setActiveEntry(null);
+      setIsRunning(false);
+      setElapsed(0);
+      setIsLoading(false);
       return;
     }
 
@@ -80,6 +89,11 @@ export default function TimerScreen() {
 
   async function startTimer() {
     if (!token || !selectedJob) {
+      if (!token) {
+        setStatus('Login to start and save a real timer.');
+        router.push('/login');
+        return;
+      }
       setStatus('Choose a job first.');
       return;
     }
@@ -139,6 +153,11 @@ export default function TimerScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Timer</Text>
+        {!token ? (
+          <PreviewHint>
+            Pick a sample job to see how the timer is organized. After login, Start and Stop save time directly to that task.
+          </PreviewHint>
+        ) : null}
         {isLoading ? <ActivityIndicator /> : null}
         {status ? <Text style={styles.status}>{status}</Text> : null}
 
@@ -146,6 +165,7 @@ export default function TimerScreen() {
           <Text style={styles.displayTime}>{formatElapsed(elapsed)}</Text>
           <Text style={styles.displayLabel}>{selectedJob?.title || 'Select job'}</Text>
           {selectedJob ? <Text style={styles.displayMeta}>{selectedJob.projectName} - {selectedJob.taskTypeName ?? 'No type'}</Text> : null}
+          {selectedJob ? <Text style={styles.displayMeta}>Total on task: {formatDuration(selectedJob.totalDurationMinutes ?? 0)}</Text> : null}
         </View>
 
         <View style={styles.section}>

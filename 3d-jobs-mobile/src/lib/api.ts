@@ -67,6 +67,7 @@ export type Job = {
   userId?: string;
   ownerEmail?: string | null;
   isShared?: boolean;
+  totalDurationMinutes?: number;
   createdAt: string;
 };
 
