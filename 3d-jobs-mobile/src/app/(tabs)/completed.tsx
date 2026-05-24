@@ -1,6 +1,7 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { AppMenu } from '@/components/app-menu';
 import { PreviewHint } from '@/components/preview-hint';
@@ -14,8 +15,14 @@ export default function CompletedTasksScreen() {
   const { isDark } = useAppTheme();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [status, setStatus] = useState('');
+
+  const normalizedSearch = search.trim().toLowerCase();
+  const visibleJobs = normalizedSearch
+    ? jobs.filter((job) => `${job.title} ${job.projectName} ${job.taskTypeName ?? ''} ${job.description ?? ''}`.toLowerCase().includes(normalizedSearch))
+    : jobs;
 
   const loadJobs = useCallback(async () => {
     if (!token) {
@@ -52,6 +59,35 @@ export default function CompletedTasksScreen() {
         {isLoading ? <ActivityIndicator /> : null}
         {status ? <Text style={[styles.status, isDark && styles.statusDark]}>{status}</Text> : null}
 
+        <View style={[styles.searchCard, isDark && styles.cardDark]}>
+          <View style={styles.searchHeader}>
+            <View style={styles.searchTitleRow}>
+              <View style={[styles.searchIcon, isDark && styles.searchIconDark]}>
+                <MaterialIcons name="search" size={18} color={isDark ? '#cffafe' : '#0e7490'} />
+              </View>
+              <View>
+                <Text style={[styles.searchTitle, isDark && styles.textLight]}>Search completed</Text>
+                <Text style={[styles.searchCount, isDark && styles.textMuted]}>{visibleJobs.length} of {jobs.length} tasks shown</Text>
+              </View>
+            </View>
+            {search ? (
+              <TouchableOpacity style={[styles.clearButton, isDark && styles.clearButtonDark]} onPress={() => setSearch('')}>
+                <Text style={[styles.clearText, isDark && styles.textLight]}>Clear</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          <View style={[styles.searchBox, isDark && styles.inputDark]}>
+            <MaterialIcons name="search" size={18} color={isDark ? '#94a3b8' : '#64748b'} />
+            <TextInput
+              style={[styles.searchInput, isDark && styles.searchInputDark]}
+              placeholder="Search by task, project, type or notes"
+              placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+              value={search}
+              onChangeText={setSearch}
+            />
+          </View>
+        </View>
+
         {selectedJob ? (
           <View style={[styles.detailCard, isDark && styles.detailCardDark]}>
             <Text style={styles.kicker}>Completed task</Text>
@@ -66,7 +102,8 @@ export default function CompletedTasksScreen() {
         ) : null}
 
         {jobs.length === 0 && !isLoading ? <Text style={[styles.empty, isDark && styles.textMuted]}>No completed tasks yet.</Text> : null}
-        {jobs.map((job) => (
+        {jobs.length > 0 && visibleJobs.length === 0 && !isLoading ? <Text style={[styles.empty, isDark && styles.textMuted]}>No completed tasks match your search.</Text> : null}
+        {visibleJobs.map((job) => (
           <TouchableOpacity key={job.id} style={[styles.card, isDark && styles.cardDark]} onPress={() => openJob(job)}>
             <Text style={[styles.jobTitle, isDark && styles.textLight]} numberOfLines={2}>{job.title}</Text>
             <Text style={[styles.meta, isDark && styles.textMuted]} numberOfLines={2}>{job.projectName} - {job.taskTypeName ?? 'No type'}</Text>
@@ -83,6 +120,20 @@ const styles = StyleSheet.create({
   containerDark: { backgroundColor: '#020617' },
   scroll: { padding: 16 },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 16, color: '#111827' },
+  searchCard: { gap: 12, backgroundColor: '#f8fafc', borderRadius: 14, borderWidth: 1, borderColor: '#dbeafe', padding: 14, marginBottom: 16 },
+  searchHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  searchTitleRow: { minWidth: 0, flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  searchIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#cffafe' },
+  searchIconDark: { backgroundColor: '#164e63' },
+  searchTitle: { color: '#111827', fontSize: 16, fontWeight: '700' },
+  searchCount: { marginTop: 2, color: '#64748b', fontSize: 12, fontWeight: '700' },
+  clearButton: { borderRadius: 10, borderWidth: 1, borderColor: '#cbd5e1', backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8 },
+  clearButtonDark: { borderColor: '#334155', backgroundColor: '#020617' },
+  clearText: { color: '#111827', fontSize: 12, fontWeight: '800' },
+  searchBox: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, paddingHorizontal: 12, backgroundColor: '#fff' },
+  searchInput: { flex: 1, color: '#111827', fontSize: 14, fontWeight: '600', paddingVertical: 10 },
+  searchInputDark: { color: '#f8fafc' },
+  inputDark: { backgroundColor: '#020617', borderColor: '#334155' },
   card: { backgroundColor: '#f9fafb', borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb', padding: 14, marginBottom: 10 },
   cardDark: { backgroundColor: '#0f172a', borderColor: '#334155' },
   jobTitle: { color: '#111827', fontWeight: '800', fontSize: 16 },

@@ -46,6 +46,7 @@ export function JobsList({
   const [status, setStatus] = useState(initialStatus);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -137,6 +138,11 @@ export function JobsList({
     setSelectedJob((currentJob) => currentJob?.id === updatedJob.id ? { ...currentJob, ...updatedJob } : currentJob);
   }
 
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const visibleJobs = normalizedSearch
+    ? jobs.filter((job) => `${job.title} ${job.projectName} ${job.taskTypeName ?? ''} ${job.description ?? ''} ${job.ownerEmail ?? ''}`.toLowerCase().includes(normalizedSearch))
+    : jobs;
+
   return (
     <>
       <div className="space-y-4">
@@ -156,6 +162,30 @@ export function JobsList({
           ))}
         </div>
 
+        <div className="rounded-2xl border border-cyan-400/10 bg-slate-950/50 p-4">
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-white">Search tasks</p>
+              <p className="text-xs text-slate-400">{visibleJobs.length} of {jobs.length} tasks shown</p>
+            </div>
+            {searchQuery ? (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="self-start rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10 sm:self-auto"
+              >
+                Clear
+              </button>
+            ) : null}
+          </div>
+          <input
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search by task, project, type, note or owner"
+            className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40 focus:ring-1 focus:ring-cyan-300/40"
+          />
+        </div>
+
         {isLoading ? (
           <div className="py-8 text-center text-sm text-slate-300">Loading jobs...</div>
         ) : error ? (
@@ -164,9 +194,13 @@ export function JobsList({
           <div className="rounded-2xl border border-white/10 bg-slate-950/60 px-6 py-8 text-center">
             <p className="text-slate-400">No {sharedOnly ? 'shared' : status} jobs yet.</p>
           </div>
+        ) : visibleJobs.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-slate-950/60 px-6 py-8 text-center">
+            <p className="text-slate-400">No tasks match your search.</p>
+          </div>
         ) : (
           <div className="space-y-3">
-            {jobs.map((job) => (
+            {visibleJobs.map((job) => (
               <div
                 key={job.id}
                 onClick={() => isUpdating !== job.id && setSelectedJob(job)}
