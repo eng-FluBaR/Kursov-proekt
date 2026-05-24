@@ -55,10 +55,10 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
       <ScrollView style={styles.scroll}>
-        <AppMenu title="Dashboard" />
+        <AppMenu title="Analytics" />
         <View style={styles.headerRow}>
           <View>
-            <Text style={[styles.title, isDark && styles.textLight]}>Dashboard</Text>
+            <Text style={[styles.title, isDark && styles.textLight]}>Analytics</Text>
             <Text style={[styles.subtitle, isDark && styles.textMuted]}>{user?.email ?? 'Review mode'}</Text>
           </View>
         </View>

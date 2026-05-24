@@ -6,6 +6,7 @@ import { SimpleSelect } from '@/components/simple-select';
 import { PreviewHint } from '@/components/preview-hint';
 import { AppMenu } from '@/components/app-menu';
 import { useAuth } from '@/contexts/auth-context';
+import { useAppTheme } from '@/contexts/theme-context';
 import { apiRequest, formatDuration, Job, TimeEntry } from '@/lib/api';
 import { previewJobs } from '@/lib/preview-data';
 
@@ -18,6 +19,7 @@ function formatElapsed(totalSeconds: number) {
 
 export default function TimerScreen() {
   const { token } = useAuth();
+  const { isDark } = useAppTheme();
   const [isRunning, setIsRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -151,10 +153,10 @@ export default function TimerScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
       <ScrollView contentContainerStyle={styles.content}>
         <AppMenu title="Timer" />
-        <Text style={styles.title}>Timer</Text>
+        <Text style={[styles.title, isDark && styles.textLight]}>Timer</Text>
         {!token ? (
           <PreviewHint>
             Pick a sample job to see how the timer is organized. After login, Start and Stop save time directly to that task.
@@ -163,15 +165,15 @@ export default function TimerScreen() {
         {isLoading ? <ActivityIndicator /> : null}
         {status ? <Text style={styles.status}>{status}</Text> : null}
 
-        <View style={styles.displayCard}>
+        <View style={[styles.displayCard, isDark && styles.displayCardDark]}>
           <Text style={styles.displayTime}>{formatElapsed(elapsed)}</Text>
-          <Text style={styles.displayLabel}>{selectedJob?.title || 'Select job'}</Text>
-          {selectedJob ? <Text style={styles.displayMeta}>{selectedJob.projectName} - {selectedJob.taskTypeName ?? 'No type'}</Text> : null}
-          {selectedJob ? <Text style={styles.displayMeta}>Total on task: {formatDuration(selectedJob.totalDurationMinutes ?? 0)}</Text> : null}
+          <Text style={[styles.displayLabel, isDark && styles.textLight]}>{selectedJob?.title || 'Select job'}</Text>
+          {selectedJob ? <Text style={[styles.displayMeta, isDark && styles.textMuted]}>{selectedJob.projectName} - {selectedJob.taskTypeName ?? 'No type'}</Text> : null}
+          {selectedJob ? <Text style={[styles.displayMeta, isDark && styles.textMuted]}>Total on task: {formatDuration(selectedJob.totalDurationMinutes ?? 0)}</Text> : null}
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.label}>Job</Text>
+          <Text style={[styles.label, isDark && styles.textMuted]}>Job</Text>
           <SimpleSelect value={selectedJobId} options={jobOptions} onChange={setSelectedJobId} />
         </View>
 
@@ -193,9 +195,11 @@ export default function TimerScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
+  containerDark: { backgroundColor: '#020617' },
   content: { padding: 16, gap: 20 },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 20, color: '#111827' },
   displayCard: { backgroundColor: '#ecfeff', borderWidth: 3, borderColor: '#06b6d4', borderRadius: 16, padding: 32, alignItems: 'center', marginBottom: 20 },
+  displayCardDark: { backgroundColor: '#0f172a', borderColor: '#155e75' },
   displayTime: { fontSize: 48, fontWeight: 'bold', fontFamily: 'monospace', color: '#0e7490', marginBottom: 12 },
   displayLabel: { fontSize: 16, fontWeight: '800', color: '#111827', textAlign: 'center' },
   displayMeta: { marginTop: 6, fontSize: 12, fontWeight: '600', color: '#475569', textAlign: 'center' },
@@ -207,4 +211,6 @@ const styles = StyleSheet.create({
   stopButton: { backgroundColor: '#EF4444' },
   controlButtonText: { color: '#fff', fontWeight: '800', fontSize: 16 },
   status: { borderRadius: 10, backgroundColor: '#f0f9ff', color: '#1d4ed8', padding: 12 },
+  textLight: { color: '#f8fafc' },
+  textMuted: { color: '#94a3b8' },
 });

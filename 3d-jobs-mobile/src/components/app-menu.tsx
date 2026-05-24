@@ -6,22 +6,28 @@ import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'reac
 import { useAuth } from '@/contexts/auth-context';
 import { useAppTheme } from '@/contexts/theme-context';
 
-const menuItems = [
-  { label: 'Dashboard', href: '/(tabs)' },
-  { label: 'Timer', href: '/(tabs)/timer' },
+type MenuItem = {
+  label: string;
+  href: '/(tabs)' | '/(tabs)/jobs' | '/(tabs)/calendar' | '/(tabs)/completed' | '/(tabs)/admin' | '/(tabs)/settings';
+  adminOnly?: boolean;
+};
+
+const menuItems: MenuItem[] = [
+  { label: 'Analytics', href: '/(tabs)' },
   { label: 'Jobs', href: '/(tabs)/jobs' },
-  { label: 'Manual log', href: '/(tabs)/manual-entry' },
-  { label: 'History', href: '/(tabs)/history' },
   { label: 'Calendar', href: '/(tabs)/calendar' },
-] as const;
+  { label: 'Completed tasks', href: '/(tabs)/completed' },
+  { label: 'Admin', href: '/(tabs)/admin', adminOnly: true },
+  { label: 'Settings', href: '/(tabs)/settings' },
+];
 
 export function AppMenu({ title }: { title: string }) {
   const pathname = usePathname();
-  const { token, logout } = useAuth();
+  const { token, user, logout } = useAuth();
   const { isDark, mode, toggleTheme } = useAppTheme();
   const [isOpen, setIsOpen] = useState(false);
 
-  function goTo(href: (typeof menuItems)[number]['href']) {
+  function goTo(href: MenuItem['href']) {
     setIsOpen(false);
     router.push(href);
   }
@@ -61,12 +67,12 @@ export function AppMenu({ title }: { title: string }) {
               </TouchableOpacity>
             </View>
 
-            {menuItems.map((item) => {
+            {menuItems.filter((item) => !item.adminOnly || user?.role === 'admin').map((item) => {
               const active = item.href === '/(tabs)' ? pathname === '/' : pathname.endsWith(item.href.replace('/(tabs)', ''));
               return (
                 <TouchableOpacity
                   key={item.href}
-                  style={[styles.menuItem, isDark && styles.menuItemDark, active && styles.menuItemActive]}
+                  style={[styles.menuItem, isDark && styles.menuItemDark, active && (isDark ? styles.menuItemActiveDark : styles.menuItemActive)]}
                   onPress={() => goTo(item.href)}
                 >
                   <Text style={[styles.menuText, isDark && styles.titleDark, active && styles.menuTextActive]}>{item.label}</Text>
@@ -171,6 +177,10 @@ const styles = StyleSheet.create({
   menuItemActive: {
     borderColor: '#22d3ee',
     backgroundColor: '#ecfeff',
+  },
+  menuItemActiveDark: {
+    borderColor: '#22d3ee',
+    backgroundColor: '#164e63',
   },
   menuText: { color: '#111827', fontWeight: '800' },
   menuTextActive: { color: '#0e7490' },

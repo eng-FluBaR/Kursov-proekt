@@ -7,6 +7,7 @@ import { PreviewHint } from '@/components/preview-hint';
 import { AppMenu } from '@/components/app-menu';
 import { apiRequest, formatDuration, Job, Project, TaskType, TimeEntry } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
+import { useAppTheme } from '@/contexts/theme-context';
 import { previewJobs, previewProjects, previewTaskTypes } from '@/lib/preview-data';
 
 type JobView = 'active' | 'paused' | 'shared' | 'completed';
@@ -24,6 +25,7 @@ function formatDate(value: string) {
 
 export default function JobsScreen() {
   const { token } = useAuth();
+  const { isDark } = useAppTheme();
   const [view, setView] = useState<JobView>('active');
   const [jobs, setJobs] = useState<Job[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -208,10 +210,10 @@ export default function JobsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
       <ScrollView style={styles.scroll}>
         <AppMenu title="Jobs" />
-        <Text style={styles.title}>Jobs</Text>
+        <Text style={[styles.title, isDark && styles.textLight]}>Jobs</Text>
         {!token ? (
           <PreviewHint>
             Browse sample tasks by status, search by name or type, and open details. Login to create, edit, share and track real tasks.
@@ -221,22 +223,23 @@ export default function JobsScreen() {
         <SimpleSelect value={view} options={viewOptions} onChange={setView} />
 
         <View style={styles.filters}>
-          <TextInput style={styles.input} placeholder="Search jobs" value={search} onChangeText={setSearch} />
+          <TextInput style={[styles.input, isDark && styles.inputDark]} placeholder="Search jobs" placeholderTextColor={isDark ? '#64748b' : undefined} value={search} onChangeText={setSearch} />
           <SimpleSelect value={typeFilter} options={filterOptions} onChange={setTypeFilter} />
         </View>
 
         {view === 'active' ? (
-          <View style={styles.createCard}>
-            <Text style={styles.sectionTitle}>Create job</Text>
-            {!token ? <Text style={styles.helpText}>After login this form creates a task with project, task type, name and notes.</Text> : null}
+          <View style={[styles.createCard, isDark && styles.cardDark]}>
+            <Text style={[styles.sectionTitle, isDark && styles.textLight]}>Create job</Text>
+            {!token ? <Text style={[styles.helpText, isDark && styles.textMuted]}>After login this form creates a task with project, task type, name and notes.</Text> : null}
             <SimpleSelect value={projectId} options={projectOptions} onChange={setProjectId} />
             <SimpleSelect value={taskTypeId} options={taskTypeOptions} onChange={setTaskTypeId} />
-            {!token ? <Text style={styles.helpText}>Task name is what appears in lists, calendar and reports.</Text> : null}
-            <TextInput style={styles.input} placeholder="Task name" value={title} onChangeText={setTitle} />
-            {!token ? <Text style={styles.helpText}>Notes can hold print settings, requirements, blockers or client feedback.</Text> : null}
+            {!token ? <Text style={[styles.helpText, isDark && styles.textMuted]}>Task name is what appears in lists, calendar and reports.</Text> : null}
+            <TextInput style={[styles.input, isDark && styles.inputDark]} placeholder="Task name" placeholderTextColor={isDark ? '#64748b' : undefined} value={title} onChangeText={setTitle} />
+            {!token ? <Text style={[styles.helpText, isDark && styles.textMuted]}>Notes can hold print settings, requirements, blockers or client feedback.</Text> : null}
             <TextInput
-              style={[styles.input, styles.textarea]}
+              style={[styles.input, styles.textarea, isDark && styles.inputDark]}
               placeholder="Notes"
+              placeholderTextColor={isDark ? '#64748b' : undefined}
               value={description}
               onChangeText={setDescription}
               multiline
@@ -254,9 +257,9 @@ export default function JobsScreen() {
           <View style={styles.detailCard}>
             <Text style={styles.kicker}>Task details</Text>
             <Text style={styles.detailTitle}>{selectedJob.title}</Text>
-            <Text style={styles.meta}>{selectedJob.projectName} - {selectedJob.taskTypeName ?? 'No type'}</Text>
+            <Text style={[styles.meta, styles.detailMeta]}>{selectedJob.projectName} - {selectedJob.taskTypeName ?? 'No type'}</Text>
             {selectedJob.isShared ? <Text style={styles.shared}>Shared by {selectedJob.ownerEmail ?? 'another user'}</Text> : null}
-            <TextInput style={[styles.input, styles.textarea]} value={notes} onChangeText={setNotes} multiline editable={!selectedJob.isShared} />
+            <TextInput style={[styles.input, styles.textarea, isDark && styles.inputDark]} value={notes} onChangeText={setNotes} multiline editable={!selectedJob.isShared} />
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.primaryButton} onPress={() => startTimer(selectedJob)} disabled={isSaving}>
                 <Text style={styles.primaryText}>Start timer</Text>
@@ -286,18 +289,18 @@ export default function JobsScreen() {
           </View>
         ) : null}
 
-        {visibleJobs.length === 0 && !isLoading ? <Text style={styles.emptyText}>No jobs found</Text> : null}
+        {visibleJobs.length === 0 && !isLoading ? <Text style={[styles.emptyText, isDark && styles.textMuted]}>No jobs found</Text> : null}
 
         {visibleJobs.map((job) => (
-          <TouchableOpacity key={job.id} style={styles.jobCard} onPress={() => openJob(job)}>
+          <TouchableOpacity key={job.id} style={[styles.jobCard, isDark && styles.cardDark]} onPress={() => openJob(job)}>
             <View style={styles.jobHeader}>
-              <Text style={styles.jobTitle}>{job.title}</Text>
+              <Text style={[styles.jobTitle, isDark && styles.textLight]}>{job.title}</Text>
               <Text style={styles.badge}>{job.status}</Text>
             </View>
-            <Text style={styles.meta}>{job.projectName} - {job.taskTypeName ?? 'No type'}</Text>
-            <Text style={styles.meta}>Tracked: {formatDuration(job.totalDurationMinutes ?? 0)}</Text>
+            <Text style={[styles.meta, isDark && styles.textMuted]}>{job.projectName} - {job.taskTypeName ?? 'No type'}</Text>
+            <Text style={[styles.meta, isDark && styles.textMuted]}>Tracked: {formatDuration(job.totalDurationMinutes ?? 0)}</Text>
             {job.isShared ? <Text style={styles.shared}>Shared by {job.ownerEmail ?? 'another user'}</Text> : null}
-            <Text style={styles.meta}>Created {formatDate(job.createdAt)}</Text>
+            <Text style={[styles.meta, isDark && styles.textMuted]}>Created {formatDate(job.createdAt)}</Text>
           </TouchableOpacity>
         ))}
 
@@ -309,13 +312,16 @@ export default function JobsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
+  containerDark: { backgroundColor: '#020617' },
   scroll: { padding: 16 },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 16, color: '#111827' },
   filters: { gap: 12, marginVertical: 16 },
   createCard: { gap: 12, backgroundColor: '#f8fafc', borderRadius: 14, borderWidth: 1, borderColor: '#e5e7eb', padding: 14, marginBottom: 16 },
+  cardDark: { backgroundColor: '#0f172a', borderColor: '#334155' },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
   helpText: { color: '#64748b', fontSize: 12, lineHeight: 17 },
   input: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, backgroundColor: '#fff', color: '#111827' },
+  inputDark: { backgroundColor: '#020617', borderColor: '#334155', color: '#f8fafc' },
   textarea: { minHeight: 90, textAlignVertical: 'top' },
   status: { borderRadius: 10, backgroundColor: '#eff6ff', color: '#1d4ed8', padding: 12, marginBottom: 12 },
   detailCard: { gap: 12, backgroundColor: '#0f172a', borderRadius: 16, padding: 16, marginBottom: 16 },
@@ -326,6 +332,7 @@ const styles = StyleSheet.create({
   jobTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: '#111827' },
   badge: { overflow: 'hidden', borderRadius: 999, backgroundColor: '#dbeafe', color: '#1e40af', paddingHorizontal: 10, paddingVertical: 4, fontSize: 12, fontWeight: '700', textTransform: 'capitalize' },
   meta: { marginTop: 4, color: '#64748b', fontSize: 12 },
+  detailMeta: { color: '#cbd5e1' },
   shared: { marginTop: 6, color: '#047857', fontSize: 12, fontWeight: '700' },
   buttonRow: { flexDirection: 'row', gap: 10 },
   primaryButton: { flex: 1, alignItems: 'center', borderRadius: 10, backgroundColor: '#10b981', paddingVertical: 12 },
@@ -337,4 +344,6 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.65 },
   emptyText: { color: '#64748b', textAlign: 'center', paddingVertical: 24 },
   spacer: { height: 24 },
+  textLight: { color: '#f8fafc' },
+  textMuted: { color: '#94a3b8' },
 });

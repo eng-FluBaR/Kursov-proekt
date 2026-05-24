@@ -37,6 +37,7 @@ export default function TabLayout() {
         name="timer"
         options={{
           title: 'Timer',
+          href: null,
         }}
       />
       <Tabs.Screen
@@ -49,18 +50,38 @@ export default function TabLayout() {
         name="manual-entry"
         options={{
           title: 'Log',
+          href: null,
         }}
       />
       <Tabs.Screen
         name="history"
         options={{
           title: 'History',
+          href: null,
         }}
       />
       <Tabs.Screen
         name="calendar"
         options={{
           title: 'Calendar',
+        }}
+      />
+      <Tabs.Screen
+        name="completed"
+        options={{
+          title: 'Completed tasks',
+        }}
+      />
+      <Tabs.Screen
+        name="admin"
+        options={{
+          title: 'Admin',
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
         }}
       />
     </Tabs>

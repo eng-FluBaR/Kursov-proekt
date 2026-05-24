@@ -6,6 +6,7 @@ import { SimpleSelect } from '@/components/simple-select';
 import { PreviewHint } from '@/components/preview-hint';
 import { AppMenu } from '@/components/app-menu';
 import { useAuth } from '@/contexts/auth-context';
+import { useAppTheme } from '@/contexts/theme-context';
 import { apiRequest, Project, TaskType } from '@/lib/api';
 import { previewProjects, previewTaskTypes } from '@/lib/preview-data';
 
@@ -22,6 +23,7 @@ function durationBetween(startDate: string, startTime: string, endDate: string, 
 
 export default function ManualEntryScreen() {
   const { token } = useAuth();
+  const { isDark } = useAppTheme();
   const [projects, setProjects] = useState<Project[]>([]);
   const [taskTypes, setTaskTypes] = useState<TaskType[]>([]);
   const [projectId, setProjectId] = useState('');
@@ -110,10 +112,10 @@ export default function ManualEntryScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
       <ScrollView style={styles.scroll}>
         <AppMenu title="Manual log" />
-        <Text style={styles.title}>Log Entry</Text>
+        <Text style={[styles.title, isDark && styles.textLight]}>Log Entry</Text>
         {!token ? (
           <PreviewHint>
             Manual entries are for work you forgot to start with the timer. Pick project, task type, date, start/end time and notes.
@@ -123,34 +125,34 @@ export default function ManualEntryScreen() {
         {status ? <Text style={styles.status}>{status}</Text> : null}
 
         <View style={styles.section}>
-          <Text style={styles.label}>Project</Text>
+          <Text style={[styles.label, isDark && styles.textMuted]}>Project</Text>
           <SimpleSelect value={projectId} options={projectOptions} onChange={setProjectId} />
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.label}>Task Type</Text>
+          <Text style={[styles.label, isDark && styles.textMuted]}>Task Type</Text>
           <SimpleSelect value={taskTypeId} options={taskTypeOptions} onChange={setTaskTypeId} />
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.label}>Date</Text>
-          <TextInput style={styles.input} placeholder="YYYY-MM-DD" value={date} onChangeText={setDate} />
+          <Text style={[styles.label, isDark && styles.textMuted]}>Date</Text>
+          <TextInput style={[styles.input, isDark && styles.inputDark]} placeholder="YYYY-MM-DD" placeholderTextColor={isDark ? '#64748b' : undefined} value={date} onChangeText={setDate} />
         </View>
 
         <View style={styles.row}>
           <View style={styles.halfSection}>
-            <Text style={styles.label}>Start Time</Text>
-            <TextInput style={styles.input} placeholder="HH:MM" value={startTime} onChangeText={setStartTime} />
+            <Text style={[styles.label, isDark && styles.textMuted]}>Start Time</Text>
+            <TextInput style={[styles.input, isDark && styles.inputDark]} placeholder="HH:MM" placeholderTextColor={isDark ? '#64748b' : undefined} value={startTime} onChangeText={setStartTime} />
           </View>
           <View style={styles.halfSection}>
-            <Text style={styles.label}>End Time</Text>
-            <TextInput style={styles.input} placeholder="HH:MM" value={endTime} onChangeText={setEndTime} />
+            <Text style={[styles.label, isDark && styles.textMuted]}>End Time</Text>
+            <TextInput style={[styles.input, isDark && styles.inputDark]} placeholder="HH:MM" placeholderTextColor={isDark ? '#64748b' : undefined} value={endTime} onChangeText={setEndTime} />
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.label}>Notes</Text>
-          <TextInput style={[styles.input, styles.textarea]} placeholder="What did you work on?" value={note} onChangeText={setNote} multiline numberOfLines={4} />
+          <Text style={[styles.label, isDark && styles.textMuted]}>Notes</Text>
+          <TextInput style={[styles.input, styles.textarea, isDark && styles.inputDark]} placeholder="What did you work on?" placeholderTextColor={isDark ? '#64748b' : undefined} value={note} onChangeText={setNote} multiline numberOfLines={4} />
         </View>
 
         <TouchableOpacity style={[styles.submitButton, isSaving && styles.buttonDisabled]} onPress={saveEntry} disabled={isSaving}>
@@ -165,11 +167,13 @@ export default function ManualEntryScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
+  containerDark: { backgroundColor: '#020617' },
   scroll: { padding: 16 },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 20 },
   section: { marginBottom: 16 },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 8, color: '#333' },
   input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, backgroundColor: '#f9f9f9' },
+  inputDark: { backgroundColor: '#0f172a', borderColor: '#334155', color: '#f8fafc' },
   textarea: { height: 100, textAlignVertical: 'top' },
   row: { flexDirection: 'row', gap: 12 },
   halfSection: { flex: 1, marginBottom: 16 },
@@ -178,4 +182,6 @@ const styles = StyleSheet.create({
   submitButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   status: { borderRadius: 8, backgroundColor: '#f0f9ff', color: '#1d4ed8', padding: 12, marginBottom: 12 },
   spacer: { height: 20 },
+  textLight: { color: '#f8fafc' },
+  textMuted: { color: '#94a3b8' },
 });

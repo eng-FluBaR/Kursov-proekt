@@ -1,5 +1,7 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { useAppTheme } from '@/contexts/theme-context';
+
 export type SelectOption<T extends string> = {
   label: string;
   value: T;
@@ -13,6 +15,8 @@ type SimpleSelectProps<T extends string> = {
 };
 
 export function SimpleSelect<T extends string>({ value, options, onChange }: SimpleSelectProps<T>) {
+  const { isDark } = useAppTheme();
+
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
       {options.map((option) => {
@@ -23,12 +27,14 @@ export function SimpleSelect<T extends string>({ value, options, onChange }: Sim
             onPress={() => onChange(option.value)}
             style={[
               styles.option,
+              isDark && styles.optionDark,
               selected && styles.optionSelected,
+              selected && isDark && styles.optionSelectedDark,
               selected && option.color ? { borderColor: option.color } : null,
             ]}
           >
             <View style={[styles.dot, { backgroundColor: option.color ?? '#3B82F6' }]} />
-            <Text style={[styles.optionText, selected && styles.optionTextSelected]}>{option.label}</Text>
+            <Text style={[styles.optionText, isDark && styles.optionTextDark, selected && styles.optionTextSelected, selected && isDark && styles.optionTextSelectedDark]}>{option.label}</Text>
           </TouchableOpacity>
         );
       })}
@@ -56,6 +62,13 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     backgroundColor: '#f0f9ff',
   },
+  optionDark: {
+    borderColor: '#334155',
+    backgroundColor: '#0f172a',
+  },
+  optionSelectedDark: {
+    backgroundColor: '#164e63',
+  },
   optionText: {
     color: '#333',
     fontSize: 13,
@@ -63,6 +76,12 @@ const styles = StyleSheet.create({
   },
   optionTextSelected: {
     color: '#111827',
+  },
+  optionTextDark: {
+    color: '#f8fafc',
+  },
+  optionTextSelectedDark: {
+    color: '#ecfeff',
   },
   dot: {
     width: 8,

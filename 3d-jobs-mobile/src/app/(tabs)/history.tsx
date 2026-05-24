@@ -6,11 +6,13 @@ import { SimpleSelect } from '@/components/simple-select';
 import { PreviewHint } from '@/components/preview-hint';
 import { AppMenu } from '@/components/app-menu';
 import { useAuth } from '@/contexts/auth-context';
+import { useAppTheme } from '@/contexts/theme-context';
 import { apiRequest, formatDuration, Project, TimeEntry } from '@/lib/api';
 import { previewProjects, previewTimeEntries } from '@/lib/preview-data';
 
 export default function HistoryScreen() {
   const { token } = useAuth();
+  const { isDark } = useAppTheme();
   const [selectedProject, setSelectedProject] = useState('all');
   const [projects, setProjects] = useState<Project[]>([]);
   const [entries, setEntries] = useState<TimeEntry[]>([]);
@@ -57,10 +59,10 @@ export default function HistoryScreen() {
     : entries;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
       <ScrollView style={styles.scroll}>
         <AppMenu title="History" />
-        <Text style={styles.title}>History</Text>
+        <Text style={[styles.title, isDark && styles.textLight]}>History</Text>
         {!token ? (
           <PreviewHint>
             History shows saved sessions, duration, notes and project filters. Login to see your real time entries.
@@ -68,7 +70,7 @@ export default function HistoryScreen() {
         ) : null}
 
         <View style={styles.filterSection}>
-          <Text style={styles.label}>Filter by Project</Text>
+          <Text style={[styles.label, isDark && styles.textMuted]}>Filter by Project</Text>
           <SimpleSelect value={selectedProject} options={projectOptions} onChange={setSelectedProject} />
         </View>
 
@@ -76,19 +78,19 @@ export default function HistoryScreen() {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         {filteredEntries.length === 0 && !isLoading ? (
-          <Text style={styles.emptyText}>No entries found</Text>
+          <Text style={[styles.emptyText, isDark && styles.textMuted]}>No entries found</Text>
         ) : (
           filteredEntries.map((entry) => (
-            <View key={entry.id} style={styles.entryItem}>
+            <View key={entry.id} style={[styles.entryItem, isDark && styles.cardDark]}>
               <View style={[styles.colorDot, { backgroundColor: entry.projectColor }]} />
               <View style={styles.entryContent}>
-                <Text style={styles.entryTitle}>{entry.projectName}</Text>
-                <Text style={styles.entrySubtitle}>
+                <Text style={[styles.entryTitle, isDark && styles.textLight]}>{entry.projectName}</Text>
+                <Text style={[styles.entrySubtitle, isDark && styles.textMuted]}>
                   {entry.jobTitle ?? entry.taskTypeName ?? 'Task'} - {new Date(entry.startedAt).toLocaleString()}
                 </Text>
-                {entry.note ? <Text style={styles.entryNote}>{entry.note}</Text> : null}
+                {entry.note ? <Text style={[styles.entryNote, isDark && styles.textMuted]}>{entry.note}</Text> : null}
               </View>
-              <Text style={styles.entryDuration}>{formatDuration(entry.durationMinutes)}</Text>
+              <Text style={[styles.entryDuration, isDark && styles.textMuted]}>{formatDuration(entry.durationMinutes)}</Text>
             </View>
           ))
         )}
@@ -99,6 +101,7 @@ export default function HistoryScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
+  containerDark: { backgroundColor: '#020617' },
   scroll: { padding: 16 },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 20 },
   filterSection: { marginBottom: 20 },
@@ -106,10 +109,13 @@ const styles = StyleSheet.create({
   error: { color: '#be123c', backgroundColor: '#fff1f2', borderRadius: 8, padding: 12, marginBottom: 12 },
   emptyText: { textAlign: 'center', color: '#999', paddingVertical: 40, fontSize: 16 },
   entryItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9f9f9', padding: 12, borderRadius: 8, marginBottom: 8, borderWidth: 1, borderColor: '#eee' },
+  cardDark: { backgroundColor: '#0f172a', borderColor: '#334155' },
   colorDot: { width: 12, height: 12, borderRadius: 6, marginRight: 12 },
   entryContent: { flex: 1 },
   entryTitle: { fontWeight: '600', fontSize: 14, marginBottom: 2 },
   entrySubtitle: { fontSize: 12, color: '#666', marginBottom: 4 },
   entryNote: { fontSize: 11, color: '#999', fontStyle: 'italic' },
   entryDuration: { fontSize: 12, fontWeight: '600', color: '#666' },
+  textLight: { color: '#f8fafc' },
+  textMuted: { color: '#94a3b8' },
 });
