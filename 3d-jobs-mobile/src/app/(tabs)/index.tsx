@@ -154,7 +154,7 @@ export default function AnalyticsScreen() {
 
         <Panel isDark={isDark}>
           <SectionTitle eyebrow="Share" title="Task type split" description="Percent of your total tracked time." isDark={isDark} />
-          <View style={styles.splitTotal}>
+          <View style={[styles.splitTotal, isDark && styles.splitTotalDark]}>
             <Text style={[styles.splitTotalLabel, isDark && styles.textMuted]}>Total</Text>
             <Text style={[styles.splitTotalValue, isDark && styles.textLight]}>{formatDuration(totalMinutes)}</Text>
           </View>
@@ -282,6 +282,7 @@ const styles = StyleSheet.create({
   trackDark: { backgroundColor: '#1e293b' },
   fill: { height: '100%', borderRadius: 999 },
   splitTotal: { alignItems: 'center', justifyContent: 'center', alignSelf: 'center', width: 152, height: 152, borderRadius: 76, borderWidth: 18, borderColor: '#22d3ee', backgroundColor: '#ffffff' },
+  splitTotalDark: { backgroundColor: '#020617', borderColor: '#22d3ee' },
   splitTotalLabel: { color: '#64748b', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   splitTotalValue: { color: '#111827', fontSize: 24, fontWeight: '900', marginTop: 4 },
   splitGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

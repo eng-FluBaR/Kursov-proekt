@@ -12,6 +12,13 @@ import { useAppTheme } from '@/contexts/theme-context';
 import { previewJobs, previewProjects, previewTaskTypes } from '@/lib/preview-data';
 
 type JobView = 'active' | 'paused' | 'shared';
+type PaginationState = {
+  limit: number;
+  offset: number;
+  returned: number;
+  hasMore: boolean;
+  nextOffset: number | null;
+};
 
 const viewOptions: SelectOption<JobView>[] = [
   { label: 'Active', value: 'active' },
@@ -49,7 +56,9 @@ export default function JobsScreen() {
   const [status, setStatus] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [pagination, setPagination] = useState<PaginationState | null>(null);
   const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null);
   const [timerJobId, setTimerJobId] = useState('');
   const [elapsed, setElapsed] = useState(0);
@@ -75,7 +84,7 @@ export default function JobsScreen() {
     ? taskTypeId
     : taskTypes[0]?.id ?? '';
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (nextOffset = 0, append = false) => {
     if (!token) {
       const previewVisibleJobs = view === 'shared'
         ? previewJobs.map((job) => ({ ...job, isShared: true, ownerEmail: 'preview@tasktimer.app' }))
@@ -92,17 +101,22 @@ export default function JobsScreen() {
       return;
     }
 
-    setIsLoading(true);
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
     setStatus('');
 
     try {
       const statusQuery = view === 'shared' ? 'all&sharedOnly=true' : `${view}&ownOnly=true`;
       const [jobsResponse, projectsResponse, taskTypesResponse] = await Promise.all([
-        apiRequest<{ jobs: Job[] }>(`/api/mobile/time-entries?status=${statusQuery}`, { token }),
+        apiRequest<{ jobs: Job[]; pagination?: PaginationState }>(`/api/mobile/time-entries?status=${statusQuery}&limit=25&offset=${nextOffset}`, { token }),
         apiRequest<{ projects: Project[] }>('/api/mobile/projects', { token }),
         apiRequest<{ taskTypes: TaskType[] }>('/api/mobile/task-types', { token }),
       ]);
-      setJobs(jobsResponse.jobs);
+      setJobs((currentJobs) => append ? [...currentJobs, ...jobsResponse.jobs] : jobsResponse.jobs);
+      setPagination(jobsResponse.pagination ?? null);
       setProjects(projectsResponse.projects);
       setTaskTypes(taskTypesResponse.taskTypes);
       setProjectId((current) => current || projectsResponse.projects[0]?.id || '');
@@ -121,10 +135,15 @@ export default function JobsScreen() {
       setStatus(caughtError instanceof Error ? caughtError.message : 'Could not load jobs.');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [token, view]);
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  useFocusEffect(useCallback(() => {
+    setJobs([]);
+    setPagination(null);
+    loadData();
+  }, [loadData]));
 
   useEffect(() => {
     if (view !== 'active') {
@@ -511,6 +530,24 @@ export default function JobsScreen() {
             <Text style={[styles.meta, isDark && styles.textMuted]}>Created {formatDate(job.createdAt)}</Text>
           </TouchableOpacity>
         ))}
+        {pagination?.hasMore ? (
+          <View style={[styles.loadMoreCard, isDark && styles.cardDark]}>
+            <Text style={[styles.loadMoreText, isDark && styles.textMuted]}>
+              Showing {jobs.length} loaded tasks. More tasks are available.
+            </Text>
+            <TouchableOpacity
+              style={[styles.loadMoreButton, isLoadingMore && styles.disabled]}
+              onPress={() => loadData(pagination.nextOffset ?? jobs.length, true)}
+              disabled={isLoadingMore}
+            >
+              <Text style={styles.primaryText} numberOfLines={1} adjustsFontSizeToFit>
+                {isLoadingMore ? 'Loading more...' : 'Load more tasks'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : pagination ? (
+          <Text style={[styles.emptyText, isDark && styles.textMuted]}>All loaded tasks are shown.</Text>
+        ) : null}
           </>
         )}
 
@@ -569,6 +606,9 @@ const styles = StyleSheet.create({
   kicker: { color: '#67e8f9', fontSize: 11, fontWeight: '700', letterSpacing: 2, textTransform: 'uppercase' },
   detailTitle: { color: '#fff', fontSize: 22, fontWeight: '800' },
   jobCard: { backgroundColor: '#f9fafb', borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb', padding: 14, marginBottom: 10 },
+  loadMoreCard: { alignItems: 'center', gap: 10, backgroundColor: '#f8fafc', borderRadius: 14, borderWidth: 1, borderColor: '#dbeafe', padding: 14, marginTop: 6 },
+  loadMoreText: { color: '#64748b', fontSize: 12, fontWeight: '700', textAlign: 'center' },
+  loadMoreButton: { alignItems: 'center', borderRadius: 10, backgroundColor: '#22d3ee', paddingHorizontal: 18, paddingVertical: 12 },
   jobHeader: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 },
   jobTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: '#111827' },
   badge: { maxWidth: 120, overflow: 'hidden', borderRadius: 999, backgroundColor: '#dbeafe', color: '#1e40af', paddingHorizontal: 10, paddingVertical: 4, fontSize: 12, fontWeight: '700', textTransform: 'capitalize' },

@@ -10,6 +10,14 @@ import { useAppTheme } from '@/contexts/theme-context';
 import { apiRequest, formatDuration, Job } from '@/lib/api';
 import { previewJobs } from '@/lib/preview-data';
 
+type PaginationState = {
+  limit: number;
+  offset: number;
+  returned: number;
+  hasMore: boolean;
+  nextOffset: number | null;
+};
+
 export default function CompletedTasksScreen() {
   const { token } = useAuth();
   const { isDark } = useAppTheme();
@@ -17,6 +25,8 @@ export default function CompletedTasksScreen() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [pagination, setPagination] = useState<PaginationState | null>(null);
   const [status, setStatus] = useState('');
 
   const normalizedSearch = search.trim().toLowerCase();
@@ -24,7 +34,7 @@ export default function CompletedTasksScreen() {
     ? jobs.filter((job) => `${job.title} ${job.projectName} ${job.taskTypeName ?? ''} ${job.description ?? ''}`.toLowerCase().includes(normalizedSearch))
     : jobs;
 
-  const loadJobs = useCallback(async () => {
+  const loadJobs = useCallback(async (nextOffset = 0, append = false) => {
     if (!token) {
       setJobs(previewJobs.filter((job) => job.status === 'completed'));
       setIsLoading(false);
@@ -32,19 +42,32 @@ export default function CompletedTasksScreen() {
     }
 
     setStatus('');
-    setIsLoading(true);
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
 
     try {
-      const response = await apiRequest<{ jobs: Job[] }>('/api/mobile/time-entries?status=completed&ownOnly=true', { token });
-      setJobs(response.jobs);
+      const response = await apiRequest<{ jobs: Job[]; pagination?: PaginationState }>(
+        `/api/mobile/time-entries?status=completed&ownOnly=true&limit=25&offset=${nextOffset}`,
+        { token },
+      );
+      setJobs((currentJobs) => append ? [...currentJobs, ...response.jobs] : response.jobs);
+      setPagination(response.pagination ?? null);
     } catch (caughtError) {
       setStatus(caughtError instanceof Error ? caughtError.message : 'Could not load completed tasks.');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [token]);
 
-  useFocusEffect(useCallback(() => { loadJobs(); }, [loadJobs]));
+  useFocusEffect(useCallback(() => {
+    setJobs([]);
+    setPagination(null);
+    loadJobs();
+  }, [loadJobs]));
 
   function openJob(job: Job) {
     setSelectedJob(job);
@@ -110,6 +133,24 @@ export default function CompletedTasksScreen() {
             <Text style={[styles.meta, isDark && styles.textMuted]} numberOfLines={1} adjustsFontSizeToFit>Tracked: {formatDuration(job.totalDurationMinutes ?? 0)}</Text>
           </TouchableOpacity>
         ))}
+        {pagination?.hasMore ? (
+          <View style={[styles.loadMoreCard, isDark && styles.cardDark]}>
+            <Text style={[styles.loadMoreText, isDark && styles.textMuted]}>
+              Showing {jobs.length} loaded completed tasks. More are available.
+            </Text>
+            <TouchableOpacity
+              style={[styles.loadMoreButton, isLoadingMore && styles.disabled]}
+              onPress={() => loadJobs(pagination.nextOffset ?? jobs.length, true)}
+              disabled={isLoadingMore}
+            >
+              <Text style={styles.loadMoreButtonText} numberOfLines={1} adjustsFontSizeToFit>
+                {isLoadingMore ? 'Loading more...' : 'Load more completed tasks'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : pagination ? (
+          <Text style={[styles.empty, isDark && styles.textMuted]}>All loaded completed tasks are shown.</Text>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -136,6 +177,11 @@ const styles = StyleSheet.create({
   inputDark: { backgroundColor: '#020617', borderColor: '#334155' },
   card: { backgroundColor: '#f9fafb', borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb', padding: 14, marginBottom: 10 },
   cardDark: { backgroundColor: '#0f172a', borderColor: '#334155' },
+  loadMoreCard: { alignItems: 'center', gap: 10, backgroundColor: '#f8fafc', borderRadius: 14, borderWidth: 1, borderColor: '#dbeafe', padding: 14, marginTop: 6 },
+  loadMoreText: { color: '#64748b', fontSize: 12, fontWeight: '700', textAlign: 'center' },
+  loadMoreButton: { alignItems: 'center', borderRadius: 10, backgroundColor: '#22d3ee', paddingHorizontal: 18, paddingVertical: 12 },
+  loadMoreButtonText: { color: '#083344', fontWeight: '900' },
+  disabled: { opacity: 0.65 },
   jobTitle: { color: '#111827', fontWeight: '800', fontSize: 16 },
   meta: { marginTop: 5, color: '#64748b', fontSize: 12 },
   detailCard: { gap: 10, backgroundColor: '#0f172a', borderRadius: 16, padding: 16, marginBottom: 16 },

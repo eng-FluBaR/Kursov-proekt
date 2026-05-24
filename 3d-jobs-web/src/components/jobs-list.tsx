@@ -20,6 +20,14 @@ type Job = {
   createdAt: string;
 };
 
+type PaginationState = {
+  limit: number;
+  offset: number;
+  returned: number;
+  hasMore: boolean;
+  nextOffset: number | null;
+};
+
 type JobsListProps = {
   refreshToken?: number;
   initialStatus?: string;
@@ -47,13 +55,23 @@ export function JobsList({
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [pagination, setPagination] = useState<PaginationState | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const fetchJobs = useCallback(async () => {
+  const fetchJobs = useCallback(async (nextOffset = 0, append = false) => {
     try {
-      setIsLoading(true);
+      if (append) {
+        setIsLoadingMore(true);
+      } else {
+        setIsLoading(true);
+        setJobs([]);
+        setPagination(null);
+      }
       setError('');
 
       const params = new URLSearchParams({ status });
+      params.set('limit', '25');
+      params.set('offset', String(nextOffset));
       if (ownOnly) {
         params.set('ownOnly', 'true');
       }
@@ -67,13 +85,14 @@ export function JobsList({
         throw new Error('Could not load jobs.');
       }
 
-      const data = (await response.json()) as { jobs: Job[] };
+      const data = (await response.json()) as { jobs: Job[]; pagination?: PaginationState };
       const loadedJobs = data.jobs || [];
-      setJobs(loadedJobs);
+      setJobs((currentJobs) => append ? [...currentJobs, ...loadedJobs] : loadedJobs);
+      setPagination(data.pagination ?? null);
 
       const requestedJobId = searchParams.get('jobId');
       const timerSelectionOnly = searchParams.get('timer') === '1';
-      if (requestedJobId && !timerSelectionOnly && !selectedJob) {
+      if (!append && requestedJobId && !timerSelectionOnly && !selectedJob) {
         const visibleJob = loadedJobs.find((job) => job.id === requestedJobId);
         if (visibleJob) {
           setSelectedJob(visibleJob);
@@ -91,11 +110,12 @@ export function JobsList({
       setError('Could not load jobs.');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [ownOnly, searchParams, selectedJob, sharedOnly, status]);
 
   useEffect(() => {
-    void Promise.resolve().then(fetchJobs);
+    void Promise.resolve().then(() => fetchJobs(0, false));
   }, [fetchJobs, refreshToken]);
 
   async function handleStatusChange(jobId: string, newStatus: string) {
@@ -247,6 +267,23 @@ export function JobsList({
                 </div>
               </div>
             ))}
+            {pagination?.hasMore ? (
+              <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-4 text-center">
+                <p className="mb-3 text-sm text-cyan-50">
+                  Showing {jobs.length} loaded tasks. More tasks are available from the server.
+                </p>
+                <button
+                  type="button"
+                  disabled={isLoadingMore}
+                  onClick={() => fetchJobs(pagination.nextOffset ?? jobs.length, true)}
+                  className="rounded-xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isLoadingMore ? 'Loading more...' : 'Load more tasks'}
+                </button>
+              </div>
+            ) : pagination ? (
+              <p className="text-center text-xs text-slate-500">All loaded tasks are shown.</p>
+            ) : null}
           </div>
         )}
       </div>
