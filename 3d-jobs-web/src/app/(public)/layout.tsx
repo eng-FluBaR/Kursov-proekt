@@ -13,6 +13,9 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
             <Link href="/" className="rounded-xl px-3 py-2 font-medium text-slate-300 transition hover:bg-white/5 hover:text-white">
               Home
             </Link>
+            <Link href="/analytics" className="rounded-xl px-3 py-2 font-medium text-slate-300 transition hover:bg-white/5 hover:text-white">
+              Review app
+            </Link>
             <Link href="/login" className="rounded-xl px-3 py-2 font-medium text-slate-300 transition hover:bg-white/5 hover:text-white">
               Login
             </Link>

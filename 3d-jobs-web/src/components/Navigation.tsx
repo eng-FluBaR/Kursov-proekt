@@ -9,14 +9,19 @@ interface SidebarProps {
 
 const navItems = [
   { href: '/', label: 'Home' },
+  { href: '/analytics', label: 'Review app' },
+  { href: '/jobs', label: 'Tasks' },
+  { href: '/calendar', label: 'Calendar' },
+  { href: '/projects', label: 'Completed' },
   { href: '/login', label: 'Login' },
   { href: '/register', label: 'Register' },
 ];
 
 const tabItems = [
   { href: '/', label: 'Home' },
+  { href: '/analytics', label: 'Review' },
+  { href: '/jobs', label: 'Tasks' },
   { href: '/login', label: 'Login' },
-  { href: '/register', label: 'Register' },
 ];
 
 export function Sidebar({ children }: SidebarProps) {

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import type { AuthUser } from '@/lib/auth-session';
 import { ProjectDot } from './workspace-ui';
@@ -16,6 +16,15 @@ const desktopNav = [
   { href: '/projects', label: 'Completed tasks' },
   { href: '/admin', label: 'Admin' },
   { href: '/settings', label: 'Settings' },
+];
+
+const guestDesktopNav = [
+  { href: '/', label: 'Home' },
+  { href: '/analytics', label: 'Review app' },
+  { href: '/jobs', label: 'Tasks' },
+  { href: '/calendar', label: 'Calendar' },
+  { href: '/projects', label: 'Completed' },
+  { href: '/login', label: 'Login' },
 ];
 
 const mobileNav = [
@@ -151,10 +160,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('tasktimer-theme-change', handleThemeChange);
   }, []);
 
-  const visibleDesktopNav = useMemo(
-    () => desktopNav.filter((item) => item.href !== '/admin' || user?.role === 'admin'),
-    [user?.role],
-  );
+  const visibleDesktopNav = user
+    ? desktopNav.filter((item) => item.href !== '/admin' || user.role === 'admin')
+    : guestDesktopNav;
   const showAdminNav = user?.role === 'admin';
 
   return (
@@ -194,6 +202,16 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div className="flex items-center gap-3">
                 <div className="hidden items-center gap-3 md:flex">
                   <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">Workspace: 3D Jops planer</span>
+                  {!user ? (
+                    <>
+                      <Link href="/" className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white">
+                        Home
+                      </Link>
+                      <Link href="/login" className="rounded-full bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200">
+                        Login
+                      </Link>
+                    </>
+                  ) : null}
                 </div>
                 <UserMenu />
               </div>
