@@ -53,7 +53,7 @@ export default function AdminScreen() {
         ) : null}
 
         {isLoading ? <ActivityIndicator /> : null}
-        {status ? <Text style={styles.status}>{status}</Text> : null}
+        {status ? <Text style={[styles.status, isDark && styles.statusDark]}>{status}</Text> : null}
 
         {stats?.totals ? (
           <View style={styles.grid}>
@@ -83,6 +83,7 @@ const styles = StyleSheet.create({
   label: { color: '#64748b', fontWeight: '800', textTransform: 'capitalize' },
   value: { marginTop: 6, color: '#111827', fontSize: 24, fontWeight: '900' },
   status: { borderRadius: 10, backgroundColor: '#eff6ff', color: '#1d4ed8', padding: 12, marginBottom: 12 },
+  statusDark: { backgroundColor: '#172554', color: '#bfdbfe' },
   loginButton: { borderRadius: 12, backgroundColor: '#2563eb', alignItems: 'center', paddingVertical: 14, marginBottom: 12 },
   buttonText: { color: '#fff', fontWeight: '900' },
   textLight: { color: '#f8fafc' },

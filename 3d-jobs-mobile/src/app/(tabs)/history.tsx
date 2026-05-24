@@ -75,7 +75,7 @@ export default function HistoryScreen() {
         </View>
 
         {isLoading ? <ActivityIndicator /> : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Text style={[styles.error, isDark && styles.errorDark]}>{error}</Text> : null}
 
         {filteredEntries.length === 0 && !isLoading ? (
           <Text style={[styles.emptyText, isDark && styles.textMuted]}>No entries found</Text>
@@ -107,6 +107,7 @@ const styles = StyleSheet.create({
   filterSection: { marginBottom: 20 },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 8, color: '#333' },
   error: { color: '#be123c', backgroundColor: '#fff1f2', borderRadius: 8, padding: 12, marginBottom: 12 },
+  errorDark: { color: '#fecdd3', backgroundColor: '#4c0519' },
   emptyText: { textAlign: 'center', color: '#999', paddingVertical: 40, fontSize: 16 },
   entryItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9f9f9', padding: 12, borderRadius: 8, marginBottom: 8, borderWidth: 1, borderColor: '#eee' },
   cardDark: { backgroundColor: '#0f172a', borderColor: '#334155' },

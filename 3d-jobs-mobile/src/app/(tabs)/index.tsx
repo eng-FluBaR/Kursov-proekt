@@ -69,19 +69,19 @@ export default function DashboardScreen() {
         ) : null}
 
         {isLoading ? <ActivityIndicator /> : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Text style={[styles.error, isDark && styles.errorDark]}>{error}</Text> : null}
 
         <View style={styles.statsGrid}>
           <View style={[styles.statCard, isDark && styles.cardDark]}>
-            <Text style={styles.statLabel}>Today&apos;s Total</Text>
+            <Text style={[styles.statLabel, isDark && styles.textMuted]}>Today&apos;s Total</Text>
             <Text style={[styles.statValue, isDark && styles.textLight]}>{formatDuration(totalMinutesToday)}</Text>
           </View>
           <View style={[styles.statCard, isDark && styles.cardDark]}>
-            <Text style={styles.statLabel}>Projects</Text>
+            <Text style={[styles.statLabel, isDark && styles.textMuted]}>Projects</Text>
             <Text style={[styles.statValue, isDark && styles.textLight]}>{projects.length}</Text>
           </View>
           <View style={[styles.statCard, isDark && styles.cardDark]}>
-            <Text style={styles.statLabel}>Jobs</Text>
+            <Text style={[styles.statLabel, isDark && styles.textMuted]}>Jobs</Text>
             <Text style={[styles.statValue, isDark && styles.textLight]}>{jobs.length}</Text>
           </View>
         </View>
@@ -89,7 +89,7 @@ export default function DashboardScreen() {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, isDark && styles.textLight]}>Recent Entries</Text>
           {entries.length === 0 && !isLoading ? (
-            <Text style={styles.emptyText}>No entries yet</Text>
+            <Text style={[styles.emptyText, isDark && styles.textMuted]}>No entries yet</Text>
           ) : (
             entries.slice(0, 8).map((entry) => (
               <View key={entry.id} style={[styles.entryItem, isDark && styles.cardDark]}>
@@ -120,6 +120,7 @@ const styles = StyleSheet.create({
   logoutButton: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
   logoutText: { color: '#333', fontWeight: '700' },
   error: { color: '#be123c', backgroundColor: '#fff1f2', borderRadius: 8, padding: 12, marginBottom: 12 },
+  errorDark: { color: '#fecdd3', backgroundColor: '#4c0519' },
   statsGrid: { flexDirection: 'row', gap: 12, marginBottom: 20 },
   statCard: { flex: 1, backgroundColor: '#f0f9ff', padding: 16, borderRadius: 12, borderLeftWidth: 4, borderLeftColor: '#3B82F6' },
   cardDark: { backgroundColor: '#0f172a', borderColor: '#334155' },

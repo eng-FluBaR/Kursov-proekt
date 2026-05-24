@@ -42,13 +42,13 @@ export default function RegisterScreen() {
         <Text style={[styles.label, isDark && styles.textMuted]}>Password</Text>
         <TextInput style={[styles.input, isDark && styles.inputDark]} value={password} onChangeText={setPassword} secureTextEntry />
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Text style={[styles.error, isDark && styles.errorDark]}>{error}</Text> : null}
 
         <TouchableOpacity style={[styles.button, isSubmitting && styles.buttonDisabled]} onPress={submit} disabled={isSubmitting}>
           <Text style={styles.buttonText}>{isSubmitting ? 'Creating...' : 'Create account'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.previewButton} onPress={() => router.replace('/(tabs)')}>
-          <Text style={styles.previewText}>Review app first</Text>
+        <TouchableOpacity style={[styles.previewButton, isDark && styles.previewButtonDark]} onPress={() => router.replace('/(tabs)')}>
+          <Text style={[styles.previewText, isDark && styles.previewTextDark]}>Review app first</Text>
         </TouchableOpacity>
 
         <Text style={[styles.footer, isDark && styles.textMuted]}>
@@ -69,11 +69,14 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, fontSize: 15 },
   inputDark: { backgroundColor: '#0f172a', borderColor: '#334155', color: '#f8fafc' },
   error: { borderWidth: 1, borderColor: '#fecdd3', borderRadius: 10, backgroundColor: '#fff1f2', color: '#be123c', padding: 12 },
+  errorDark: { borderColor: '#be123c', backgroundColor: '#4c0519', color: '#fecdd3' },
   button: { marginTop: 8, borderRadius: 10, backgroundColor: '#2563eb', paddingVertical: 14, alignItems: 'center' },
   buttonDisabled: { opacity: 0.65 },
   buttonText: { color: '#fff', fontWeight: '800', fontSize: 16 },
   previewButton: { borderWidth: 1, borderColor: '#bae6fd', borderRadius: 10, backgroundColor: '#ecfeff', paddingVertical: 13, alignItems: 'center' },
+  previewButtonDark: { borderColor: '#155e75', backgroundColor: '#0f172a' },
   previewText: { color: '#0e7490', fontWeight: '800' },
+  previewTextDark: { color: '#67e8f9' },
   footer: { marginTop: 14, textAlign: 'center', color: '#6b7280' },
   link: { color: '#2563eb', fontWeight: '800' },
   themeButton: { alignSelf: 'flex-end', borderWidth: 1, borderColor: '#d1d5db', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 18 },

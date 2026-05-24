@@ -163,7 +163,7 @@ export default function TimerScreen() {
           </PreviewHint>
         ) : null}
         {isLoading ? <ActivityIndicator /> : null}
-        {status ? <Text style={styles.status}>{status}</Text> : null}
+        {status ? <Text style={[styles.status, isDark && styles.statusDark]}>{status}</Text> : null}
 
         <View style={[styles.displayCard, isDark && styles.displayCardDark]}>
           <Text style={styles.displayTime}>{formatElapsed(elapsed)}</Text>
@@ -211,6 +211,7 @@ const styles = StyleSheet.create({
   stopButton: { backgroundColor: '#EF4444' },
   controlButtonText: { color: '#fff', fontWeight: '800', fontSize: 16 },
   status: { borderRadius: 10, backgroundColor: '#f0f9ff', color: '#1d4ed8', padding: 12 },
+  statusDark: { backgroundColor: '#172554', color: '#bfdbfe' },
   textLight: { color: '#f8fafc' },
   textMuted: { color: '#94a3b8' },
 });

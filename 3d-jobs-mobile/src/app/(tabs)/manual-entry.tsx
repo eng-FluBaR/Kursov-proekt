@@ -122,7 +122,7 @@ export default function ManualEntryScreen() {
           </PreviewHint>
         ) : null}
         {isLoading ? <ActivityIndicator /> : null}
-        {status ? <Text style={styles.status}>{status}</Text> : null}
+        {status ? <Text style={[styles.status, isDark && styles.statusDark]}>{status}</Text> : null}
 
         <View style={styles.section}>
           <Text style={[styles.label, isDark && styles.textMuted]}>Project</Text>
@@ -181,6 +181,7 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.65 },
   submitButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   status: { borderRadius: 8, backgroundColor: '#f0f9ff', color: '#1d4ed8', padding: 12, marginBottom: 12 },
+  statusDark: { backgroundColor: '#172554', color: '#bfdbfe' },
   spacer: { height: 20 },
   textLight: { color: '#f8fafc' },
   textMuted: { color: '#94a3b8' },

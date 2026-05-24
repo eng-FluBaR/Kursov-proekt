@@ -43,23 +43,23 @@ export default function LoginScreen() {
           <Text style={[styles.label, isDark && styles.textMuted]}>Password</Text>
           <TextInput style={[styles.input, isDark && styles.inputDark]} value={password} onChangeText={setPassword} secureTextEntry />
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? <Text style={[styles.error, isDark && styles.errorDark]}>{error}</Text> : null}
 
           <TouchableOpacity style={[styles.button, isSubmitting && styles.buttonDisabled]} onPress={submit} disabled={isSubmitting}>
             <Text style={styles.buttonText}>{isSubmitting ? 'Signing in...' : 'Sign in'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.previewButton} onPress={() => router.replace('/(tabs)')}>
-            <Text style={styles.previewText}>Review app without login</Text>
+          <TouchableOpacity style={[styles.previewButton, isDark && styles.previewButtonDark]} onPress={() => router.replace('/(tabs)')}>
+            <Text style={[styles.previewText, isDark && styles.previewTextDark]}>Review app without login</Text>
           </TouchableOpacity>
 
           <View style={styles.demoRow}>
-            <TouchableOpacity onPress={() => { setEmail('admin@tasktimer.app'); setPassword('admin123'); }} style={styles.demoButton}>
-              <Text style={styles.demoTitle}>Admin</Text>
-              <Text style={styles.demoText}>admin@tasktimer.app</Text>
+            <TouchableOpacity onPress={() => { setEmail('admin@tasktimer.app'); setPassword('admin123'); }} style={[styles.demoButton, isDark && styles.demoButtonDark]}>
+              <Text style={[styles.demoTitle, isDark && styles.textLight]}>Admin</Text>
+              <Text style={[styles.demoText, isDark && styles.textMuted]}>admin@tasktimer.app</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => { setEmail('demo@tasktimer.app'); setPassword('demo123'); }} style={styles.demoButton}>
-              <Text style={styles.demoTitle}>Demo</Text>
-              <Text style={styles.demoText}>demo@tasktimer.app</Text>
+            <TouchableOpacity onPress={() => { setEmail('demo@tasktimer.app'); setPassword('demo123'); }} style={[styles.demoButton, isDark && styles.demoButtonDark]}>
+              <Text style={[styles.demoTitle, isDark && styles.textLight]}>Demo</Text>
+              <Text style={[styles.demoText, isDark && styles.textMuted]}>demo@tasktimer.app</Text>
             </TouchableOpacity>
           </View>
 
@@ -83,13 +83,17 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, fontSize: 15 },
   inputDark: { backgroundColor: '#0f172a', borderColor: '#334155', color: '#f8fafc' },
   error: { borderWidth: 1, borderColor: '#fecdd3', borderRadius: 10, backgroundColor: '#fff1f2', color: '#be123c', padding: 12 },
+  errorDark: { borderColor: '#be123c', backgroundColor: '#4c0519', color: '#fecdd3' },
   button: { marginTop: 8, borderRadius: 10, backgroundColor: '#2563eb', paddingVertical: 14, alignItems: 'center' },
   buttonDisabled: { opacity: 0.65 },
   buttonText: { color: '#fff', fontWeight: '800', fontSize: 16 },
   previewButton: { borderWidth: 1, borderColor: '#bae6fd', borderRadius: 10, backgroundColor: '#ecfeff', paddingVertical: 13, alignItems: 'center' },
+  previewButtonDark: { borderColor: '#155e75', backgroundColor: '#0f172a' },
   previewText: { color: '#0e7490', fontWeight: '800' },
+  previewTextDark: { color: '#67e8f9' },
   demoRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
   demoButton: { flex: 1, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 12, backgroundColor: '#f9fafb' },
+  demoButtonDark: { borderColor: '#334155', backgroundColor: '#0f172a' },
   demoTitle: { fontWeight: '800', color: '#111827' },
   demoText: { marginTop: 4, fontSize: 11, color: '#6b7280' },
   footer: { marginTop: 14, textAlign: 'center', color: '#6b7280' },

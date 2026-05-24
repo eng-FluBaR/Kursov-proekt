@@ -99,7 +99,7 @@ export default function CalendarScreen() {
         </View>
 
         {isLoading ? <ActivityIndicator /> : null}
-        {status ? <Text style={styles.status}>{status}</Text> : null}
+        {status ? <Text style={[styles.status, isDark && styles.statusDark]}>{status}</Text> : null}
 
         <View style={styles.weekRow}>
           {weekdays.map((day) => <Text key={day} style={[styles.weekday, isDark && styles.textMuted]}>{day}</Text>)}
@@ -116,8 +116,8 @@ export default function CalendarScreen() {
                   {dayJobs.length > 0 ? <Text style={styles.count}>{dayJobs.length}</Text> : null}
                 </View>
                 {dayJobs.slice(0, 2).map((job) => (
-                  <TouchableOpacity key={job.id} style={styles.jobPill} onPress={() => openJob(job)}>
-                    <Text style={styles.jobPillText} numberOfLines={1}>{job.title}</Text>
+                  <TouchableOpacity key={job.id} style={[styles.jobPill, isDark && styles.jobPillDark]} onPress={() => openJob(job)}>
+                    <Text style={[styles.jobPillText, isDark && styles.jobPillTextDark]} numberOfLines={1}>{job.title}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -139,6 +139,7 @@ const styles = StyleSheet.create({
   filter: { marginBottom: 16 },
   label: { fontSize: 14, fontWeight: '700', color: '#334155', marginBottom: 8 },
   status: { borderRadius: 10, backgroundColor: '#eff6ff', color: '#1d4ed8', padding: 12, marginBottom: 12 },
+  statusDark: { backgroundColor: '#172554', color: '#bfdbfe' },
   weekRow: { flexDirection: 'row', gap: 6, marginBottom: 8 },
   weekday: { flex: 1, textAlign: 'center', color: '#64748b', fontSize: 11, fontWeight: '800' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
@@ -150,7 +151,9 @@ const styles = StyleSheet.create({
   dayNumber: { color: '#111827', fontWeight: '800', fontSize: 12 },
   count: { overflow: 'hidden', borderRadius: 999, backgroundColor: '#0891b2', color: '#fff', fontSize: 10, fontWeight: '800', paddingHorizontal: 5, paddingVertical: 1 },
   jobPill: { borderRadius: 7, backgroundColor: '#cffafe', paddingHorizontal: 5, paddingVertical: 4, marginBottom: 4 },
+  jobPillDark: { backgroundColor: '#0e7490' },
   jobPillText: { color: '#155e75', fontSize: 10, fontWeight: '700' },
+  jobPillTextDark: { color: '#ecfeff' },
   spacer: { height: 24 },
   textLight: { color: '#f8fafc' },
   textMuted: { color: '#94a3b8' },

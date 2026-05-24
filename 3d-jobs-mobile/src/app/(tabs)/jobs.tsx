@@ -251,7 +251,7 @@ export default function JobsScreen() {
         ) : null}
 
         {isLoading ? <ActivityIndicator /> : null}
-        {status ? <Text style={styles.status}>{status}</Text> : null}
+        {status ? <Text style={[styles.status, isDark && styles.statusDark]}>{status}</Text> : null}
 
         {selectedJob ? (
           <View style={styles.detailCard}>
@@ -265,21 +265,21 @@ export default function JobsScreen() {
                 <Text style={styles.primaryText}>Start timer</Text>
               </TouchableOpacity>
               {!selectedJob.isShared ? (
-                <TouchableOpacity style={styles.secondaryButton} onPress={() => updateSelectedJob()} disabled={isSaving}>
-                  <Text style={styles.secondaryText}>Save</Text>
+                <TouchableOpacity style={[styles.secondaryButton, isDark && styles.secondaryButtonDark]} onPress={() => updateSelectedJob()} disabled={isSaving}>
+                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]}>Save</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
             {!selectedJob.isShared ? (
               <View style={styles.buttonRow}>
-                <TouchableOpacity style={styles.secondaryButton} onPress={() => updateSelectedJob('active')} disabled={isSaving}>
-                  <Text style={styles.secondaryText}>Active</Text>
+                <TouchableOpacity style={[styles.secondaryButton, isDark && styles.secondaryButtonDark]} onPress={() => updateSelectedJob('active')} disabled={isSaving}>
+                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]}>Active</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.secondaryButton} onPress={() => updateSelectedJob('paused')} disabled={isSaving}>
-                  <Text style={styles.secondaryText}>Pause</Text>
+                <TouchableOpacity style={[styles.secondaryButton, isDark && styles.secondaryButtonDark]} onPress={() => updateSelectedJob('paused')} disabled={isSaving}>
+                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]}>Pause</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.secondaryButton} onPress={() => updateSelectedJob('completed')} disabled={isSaving}>
-                  <Text style={styles.secondaryText}>Complete</Text>
+                <TouchableOpacity style={[styles.secondaryButton, isDark && styles.secondaryButtonDark]} onPress={() => updateSelectedJob('completed')} disabled={isSaving}>
+                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]}>Complete</Text>
                 </TouchableOpacity>
               </View>
             ) : null}
@@ -295,7 +295,7 @@ export default function JobsScreen() {
           <TouchableOpacity key={job.id} style={[styles.jobCard, isDark && styles.cardDark]} onPress={() => openJob(job)}>
             <View style={styles.jobHeader}>
               <Text style={[styles.jobTitle, isDark && styles.textLight]}>{job.title}</Text>
-              <Text style={styles.badge}>{job.status}</Text>
+              <Text style={[styles.badge, isDark && styles.badgeDark]}>{job.status}</Text>
             </View>
             <Text style={[styles.meta, isDark && styles.textMuted]}>{job.projectName} - {job.taskTypeName ?? 'No type'}</Text>
             <Text style={[styles.meta, isDark && styles.textMuted]}>Tracked: {formatDuration(job.totalDurationMinutes ?? 0)}</Text>
@@ -324,6 +324,7 @@ const styles = StyleSheet.create({
   inputDark: { backgroundColor: '#020617', borderColor: '#334155', color: '#f8fafc' },
   textarea: { minHeight: 90, textAlignVertical: 'top' },
   status: { borderRadius: 10, backgroundColor: '#eff6ff', color: '#1d4ed8', padding: 12, marginBottom: 12 },
+  statusDark: { backgroundColor: '#172554', color: '#bfdbfe' },
   detailCard: { gap: 12, backgroundColor: '#0f172a', borderRadius: 16, padding: 16, marginBottom: 16 },
   kicker: { color: '#67e8f9', fontSize: 11, fontWeight: '700', letterSpacing: 2, textTransform: 'uppercase' },
   detailTitle: { color: '#fff', fontSize: 22, fontWeight: '800' },
@@ -331,6 +332,7 @@ const styles = StyleSheet.create({
   jobHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
   jobTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: '#111827' },
   badge: { overflow: 'hidden', borderRadius: 999, backgroundColor: '#dbeafe', color: '#1e40af', paddingHorizontal: 10, paddingVertical: 4, fontSize: 12, fontWeight: '700', textTransform: 'capitalize' },
+  badgeDark: { backgroundColor: '#164e63', color: '#cffafe' },
   meta: { marginTop: 4, color: '#64748b', fontSize: 12 },
   detailMeta: { color: '#cbd5e1' },
   shared: { marginTop: 6, color: '#047857', fontSize: 12, fontWeight: '700' },
@@ -338,7 +340,9 @@ const styles = StyleSheet.create({
   primaryButton: { flex: 1, alignItems: 'center', borderRadius: 10, backgroundColor: '#10b981', paddingVertical: 12 },
   primaryText: { color: '#052e16', fontWeight: '800' },
   secondaryButton: { flex: 1, alignItems: 'center', borderRadius: 10, borderWidth: 1, borderColor: '#cbd5e1', backgroundColor: '#fff', paddingVertical: 12 },
+  secondaryButtonDark: { borderColor: '#334155', backgroundColor: '#020617' },
   secondaryText: { color: '#111827', fontWeight: '700' },
+  secondaryTextDark: { color: '#f8fafc' },
   closeButton: { alignItems: 'center', borderRadius: 10, borderWidth: 1, borderColor: '#334155', paddingVertical: 12 },
   closeText: { color: '#e2e8f0', fontWeight: '700' },
   disabled: { opacity: 0.65 },

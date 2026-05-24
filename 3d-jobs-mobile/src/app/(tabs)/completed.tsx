@@ -54,7 +54,7 @@ export default function CompletedTasksScreen() {
         <Text style={[styles.title, isDark && styles.textLight]}>Finished work</Text>
         {!token ? <PreviewHint>Completed tasks collect finished jobs and their tracked time. Login to open reports and real task details.</PreviewHint> : null}
         {isLoading ? <ActivityIndicator /> : null}
-        {status ? <Text style={styles.status}>{status}</Text> : null}
+        {status ? <Text style={[styles.status, isDark && styles.statusDark]}>{status}</Text> : null}
 
         {jobs.length === 0 && !isLoading ? <Text style={[styles.empty, isDark && styles.textMuted]}>No completed tasks yet.</Text> : null}
         {jobs.map((job) => (
@@ -79,6 +79,7 @@ const styles = StyleSheet.create({
   jobTitle: { color: '#111827', fontWeight: '800', fontSize: 16 },
   meta: { marginTop: 5, color: '#64748b', fontSize: 12 },
   status: { borderRadius: 10, backgroundColor: '#eff6ff', color: '#1d4ed8', padding: 12, marginBottom: 12 },
+  statusDark: { backgroundColor: '#172554', color: '#bfdbfe' },
   empty: { color: '#64748b', textAlign: 'center', paddingVertical: 24 },
   textLight: { color: '#f8fafc' },
   textMuted: { color: '#94a3b8' },
