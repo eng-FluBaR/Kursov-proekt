@@ -1,0 +1,7 @@
+[build]
+  command = "npm run build:web"
+  publish = "3d-jobs-web/.next"
+
+[build.environment]
+  NODE_VERSION = "20"
+

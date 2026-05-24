@@ -621,21 +621,22 @@ Production mobile builds should be handled through the chosen Expo/EAS workflow 
 ### 12.3 Netlify Deployment
 
 - Deploy `3d-jobs-web` to Netlify as the server-rendered Next.js application and API host.
-- Configure the Netlify project to build from the `3d-jobs-web` workspace.
-- Use `npm run build:web` from the repository root, or the equivalent workspace build command required by the final Netlify setup.
+- Use the root `netlify.toml` configuration for the production web/API deployment.
+- Build command: `npm run build:web`.
+- Publish directory: `3d-jobs-web/.next`.
+- Node version: `20`.
 - Ensure production environment variables are configured in Netlify.
 - Ensure the deployed API URL is configured for the mobile app through `EXPO_PUBLIC_API_URL`.
 - Run Drizzle migrations against the production Neon database before release.
 - Use a strong `AUTH_SECRET`; changing it invalidates existing signed sessions.
-- Add or update `netlify.toml` when deployment routing/build settings are finalized.
 
-Suggested Netlify settings when the project reaches deployment setup:
+Netlify settings:
 
 | Setting | Suggested Value | Notes |
 | --- | --- | --- |
-| Base directory | repository root or `3d-jobs-web` | Depends on the final Netlify monorepo configuration. |
-| Build command | `npm run build:web` | Root command keeps workspace behavior explicit. |
-| Publish directory | `.next` or Netlify-managed Next output | Final value depends on Netlify's Next.js runtime setup. |
+| Base directory | repository root | Root install keeps npm workspaces available. |
+| Build command | `npm run build:web` | Root command builds the Next.js workspace explicitly. |
+| Publish directory | `3d-jobs-web/.next` | Next.js production output for the web workspace. |
 | Environment variables | `DATABASE_URL`, `AUTH_SECRET`, mobile API URL if needed | Store production secrets only in Netlify, not in Git. |
 | Functions/runtime | Netlify Next.js runtime | Required for API routes/server rendering. |
 
