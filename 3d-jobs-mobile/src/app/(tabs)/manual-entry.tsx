@@ -4,6 +4,7 @@ import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TextInpu
 
 import { SimpleSelect } from '@/components/simple-select';
 import { PreviewHint } from '@/components/preview-hint';
+import { AppMenu } from '@/components/app-menu';
 import { useAuth } from '@/contexts/auth-context';
 import { apiRequest, Project, TaskType } from '@/lib/api';
 import { previewProjects, previewTaskTypes } from '@/lib/preview-data';
@@ -111,6 +112,7 @@ export default function ManualEntryScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scroll}>
+        <AppMenu title="Manual log" />
         <Text style={styles.title}>Log Entry</Text>
         {!token ? (
           <PreviewHint>

@@ -4,6 +4,7 @@ import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, Touchabl
 
 import { SimpleSelect } from '@/components/simple-select';
 import { PreviewHint } from '@/components/preview-hint';
+import { AppMenu } from '@/components/app-menu';
 import { useAuth } from '@/contexts/auth-context';
 import { apiRequest, formatDuration, Job, TimeEntry } from '@/lib/api';
 import { previewJobs } from '@/lib/preview-data';
@@ -152,6 +153,7 @@ export default function TimerScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
+        <AppMenu title="Timer" />
         <Text style={styles.title}>Timer</Text>
         {!token ? (
           <PreviewHint>

@@ -4,6 +4,7 @@ import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TextInpu
 
 import { SelectOption, SimpleSelect } from '@/components/simple-select';
 import { PreviewHint } from '@/components/preview-hint';
+import { AppMenu } from '@/components/app-menu';
 import { apiRequest, formatDuration, Job, Project, TaskType, TimeEntry } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
 import { previewJobs, previewProjects, previewTaskTypes } from '@/lib/preview-data';
@@ -209,6 +210,7 @@ export default function JobsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scroll}>
+        <AppMenu title="Jobs" />
         <Text style={styles.title}>Jobs</Text>
         {!token ? (
           <PreviewHint>

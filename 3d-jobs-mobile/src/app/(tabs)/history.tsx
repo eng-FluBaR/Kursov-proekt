@@ -4,6 +4,7 @@ import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } f
 
 import { SimpleSelect } from '@/components/simple-select';
 import { PreviewHint } from '@/components/preview-hint';
+import { AppMenu } from '@/components/app-menu';
 import { useAuth } from '@/contexts/auth-context';
 import { apiRequest, formatDuration, Project, TimeEntry } from '@/lib/api';
 import { previewProjects, previewTimeEntries } from '@/lib/preview-data';
@@ -58,6 +59,7 @@ export default function HistoryScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scroll}>
+        <AppMenu title="History" />
         <Text style={styles.title}>History</Text>
         {!token ? (
           <PreviewHint>

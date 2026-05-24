@@ -1,16 +1,17 @@
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '@/contexts/auth-context';
 import { useAppTheme } from '@/contexts/theme-context';
 import { apiRequest, formatDuration, Job, Project, TimeEntry } from '@/lib/api';
 import { previewJobs, previewProjects, previewTimeEntries } from '@/lib/preview-data';
 import { PreviewHint } from '@/components/preview-hint';
+import { AppMenu } from '@/components/app-menu';
 
 export default function DashboardScreen() {
-  const { token, user, logout } = useAuth();
-  const { isDark, mode, toggleTheme } = useAppTheme();
+  const { token, user } = useAuth();
+  const { isDark } = useAppTheme();
   const [projects, setProjects] = useState<Project[]>([]);
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -54,18 +55,11 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
       <ScrollView style={styles.scroll}>
+        <AppMenu title="Dashboard" />
         <View style={styles.headerRow}>
           <View>
             <Text style={[styles.title, isDark && styles.textLight]}>Dashboard</Text>
             <Text style={[styles.subtitle, isDark && styles.textMuted]}>{user?.email ?? 'Review mode'}</Text>
-          </View>
-          <View style={styles.headerActions}>
-            <TouchableOpacity onPress={toggleTheme} style={[styles.logoutButton, isDark && styles.buttonDark]}>
-              <Text style={[styles.logoutText, isDark && styles.textLight]}>{mode === 'dark' ? 'Light' : 'Dark'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={token ? logout : () => router.push('/login')} style={[styles.logoutButton, isDark && styles.buttonDark]}>
-              <Text style={[styles.logoutText, isDark && styles.textLight]}>{token ? 'Logout' : 'Login'}</Text>
-            </TouchableOpacity>
           </View>
         </View>
         {!token ? (
@@ -121,11 +115,9 @@ const styles = StyleSheet.create({
   containerDark: { backgroundColor: '#020617' },
   scroll: { padding: 16 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  headerActions: { flexDirection: 'row', gap: 8 },
   title: { fontSize: 28, fontWeight: 'bold' },
   subtitle: { marginTop: 4, color: '#666' },
   logoutButton: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
-  buttonDark: { borderColor: '#334155', backgroundColor: '#0f172a' },
   logoutText: { color: '#333', fontWeight: '700' },
   error: { color: '#be123c', backgroundColor: '#fff1f2', borderRadius: 8, padding: 12, marginBottom: 12 },
   statsGrid: { flexDirection: 'row', gap: 12, marginBottom: 20 },

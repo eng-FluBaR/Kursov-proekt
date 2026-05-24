@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { PreviewHint } from '@/components/preview-hint';
+import { AppMenu } from '@/components/app-menu';
 import { SelectOption, SimpleSelect } from '@/components/simple-select';
 import { useAuth } from '@/contexts/auth-context';
 import { apiRequest, Job } from '@/lib/api';
@@ -82,6 +83,7 @@ export default function CalendarScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scroll}>
+        <AppMenu title="Calendar" />
         <Text style={styles.title}>{today.toLocaleString('en-US', { month: 'long', year: 'numeric' })}</Text>
         {!token ? (
           <PreviewHint>
