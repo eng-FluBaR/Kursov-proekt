@@ -21,6 +21,7 @@
     "build:mobile": "npm --workspace 3d-jobs-mobile run build --if-present",
     "db:migrate": "npm --workspace @3d-jobs/db run migrate",
     "db:seed": "npm --workspace @3d-jobs/db run seed",
+    "db:seed-demo-paging": "npm --workspace @3d-jobs/db run seed:demo-paging",
     "lint": "npm --workspace 3d-jobs-web run lint && npm --workspace 3d-jobs-mobile run lint"
   },
   "devDependencies": {

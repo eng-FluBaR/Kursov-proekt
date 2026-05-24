@@ -10,7 +10,8 @@
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate",
     "studio": "drizzle-kit studio",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "seed:demo-paging": "tsx scripts/seed-demo-paging.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.0",
