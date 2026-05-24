@@ -10,13 +10,12 @@ import { useAuth } from '@/contexts/auth-context';
 import { useAppTheme } from '@/contexts/theme-context';
 import { previewJobs, previewProjects, previewTaskTypes } from '@/lib/preview-data';
 
-type JobView = 'active' | 'paused' | 'shared' | 'completed';
+type JobView = 'active' | 'paused' | 'shared';
 
 const viewOptions: SelectOption<JobView>[] = [
   { label: 'Active', value: 'active' },
   { label: 'Paused', value: 'paused' },
   { label: 'Shared', value: 'shared' },
-  { label: 'Completed', value: 'completed' },
 ];
 
 function formatDate(value: string) {
@@ -47,6 +46,7 @@ export default function JobsScreen() {
   const [taskTypeId, setTaskTypeId] = useState('');
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState('');
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null);
@@ -126,6 +126,12 @@ export default function JobsScreen() {
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
   useEffect(() => {
+    if (view !== 'active') {
+      setShowCreateForm(false);
+    }
+  }, [view]);
+
+  useEffect(() => {
     if (!activeEntry) {
       return;
     }
@@ -180,6 +186,7 @@ export default function JobsScreen() {
       });
       setTitle('');
       setDescription('');
+      setShowCreateForm(false);
       setStatus('Job created.');
       await loadData();
     } catch (caughtError) {
@@ -335,14 +342,32 @@ export default function JobsScreen() {
           ) : null}
         </View>
 
-        <SimpleSelect value={view} options={viewOptions} onChange={setView} />
+        <View style={styles.controlBlock}>
+          <Text style={[styles.fieldLabel, isDark && styles.textMuted]}>Task list</Text>
+          <SimpleSelect value={view} options={viewOptions} onChange={setView} />
+        </View>
 
         <View style={styles.filters}>
           <TextInput style={[styles.input, isDark && styles.inputDark]} placeholder="Search jobs" placeholderTextColor={isDark ? '#64748b' : undefined} value={search} onChangeText={setSearch} />
-          <SimpleSelect value={typeFilter} options={filterOptions} onChange={setTypeFilter} />
+          <View style={styles.controlBlock}>
+            <Text style={[styles.fieldLabel, isDark && styles.textMuted]}>Task type</Text>
+            <SimpleSelect value={typeFilter} options={filterOptions} onChange={setTypeFilter} />
+          </View>
         </View>
 
         {view === 'active' ? (
+          <TouchableOpacity
+            style={[styles.openCreateButton, showCreateForm && styles.openCreateButtonActive, isSaving && styles.disabled]}
+            onPress={() => setShowCreateForm((current) => !current)}
+            disabled={isSaving}
+          >
+            <Text style={styles.primaryText} numberOfLines={1} adjustsFontSizeToFit>
+              {showCreateForm ? 'Hide Task Form' : 'Create New Task'}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+
+        {view === 'active' && showCreateForm ? (
           <View style={[styles.createCard, isDark && styles.cardDark]}>
             <View>
               <Text style={[styles.sectionEyebrow, isDark && styles.textMuted]}>Task form</Text>
@@ -402,9 +427,11 @@ export default function JobsScreen() {
             {selectedJob.isShared ? <Text style={styles.shared}>Shared by {selectedJob.ownerEmail ?? 'another user'}</Text> : null}
             <TextInput style={[styles.input, styles.textarea, isDark && styles.inputDark]} value={notes} onChangeText={setNotes} multiline editable={!selectedJob.isShared} />
             <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.primaryButton} onPress={() => startTimer(selectedJob)} disabled={isSaving}>
-                <Text style={styles.primaryText} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75}>Start timer</Text>
-              </TouchableOpacity>
+              {selectedJob.status === 'active' ? (
+                <TouchableOpacity style={styles.primaryButton} onPress={() => startTimer(selectedJob)} disabled={isSaving}>
+                  <Text style={styles.primaryText} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75}>Start timer</Text>
+                </TouchableOpacity>
+              ) : null}
               {!selectedJob.isShared ? (
                 <TouchableOpacity style={[styles.secondaryButton, isDark && styles.secondaryButtonDark]} onPress={() => updateSelectedJob()} disabled={isSaving}>
                   <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]} numberOfLines={1} adjustsFontSizeToFit>Save</Text>
@@ -456,6 +483,7 @@ const styles = StyleSheet.create({
   containerDark: { backgroundColor: '#020617' },
   scroll: { padding: 16 },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 16, color: '#111827' },
+  controlBlock: { gap: 8 },
   filters: { gap: 12, marginVertical: 16 },
   timerCard: { gap: 14, backgroundColor: '#f8fafc', borderRadius: 16, borderWidth: 1, borderColor: '#e5e7eb', padding: 16, marginBottom: 16 },
   timerHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
@@ -496,6 +524,8 @@ const styles = StyleSheet.create({
   detailMeta: { color: '#cbd5e1' },
   shared: { marginTop: 6, color: '#047857', fontSize: 12, fontWeight: '700' },
   buttonRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  openCreateButton: { alignItems: 'center', borderRadius: 10, backgroundColor: '#10b981', paddingVertical: 12, paddingHorizontal: 18, marginBottom: 16 },
+  openCreateButtonActive: { backgroundColor: '#67e8f9' },
   createSubmitButton: { alignSelf: 'flex-start', minWidth: 148, maxWidth: '100%', alignItems: 'center', borderRadius: 10, backgroundColor: '#10b981', paddingVertical: 11, paddingHorizontal: 18 },
   primaryButton: { flexGrow: 1, flexBasis: 120, alignItems: 'center', borderRadius: 10, backgroundColor: '#10b981', paddingVertical: 12, paddingHorizontal: 10 },
   primaryText: { color: '#052e16', fontWeight: '800' },

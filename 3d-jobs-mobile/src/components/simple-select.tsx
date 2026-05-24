@@ -1,4 +1,5 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { useAppTheme } from '@/contexts/theme-context';
 
@@ -16,56 +17,121 @@ type SimpleSelectProps<T extends string> = {
 
 export function SimpleSelect<T extends string>({ value, options, onChange }: SimpleSelectProps<T>) {
   const { isDark } = useAppTheme();
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = options.find((option) => option.value === value);
+
+  function chooseOption(nextValue: T) {
+    onChange(nextValue);
+    setIsOpen(false);
+  }
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-      {options.map((option) => {
-        const selected = option.value === value;
-        return (
-          <TouchableOpacity
-            key={option.value}
-            onPress={() => onChange(option.value)}
-            style={[
-              styles.option,
-              isDark && styles.optionDark,
-              selected && styles.optionSelected,
-              selected && isDark && styles.optionSelectedDark,
-              selected && option.color ? { borderColor: option.color } : null,
-            ]}
-          >
-            <View style={[styles.dot, { backgroundColor: option.color ?? '#3B82F6' }]} />
-            <Text style={[styles.optionText, isDark && styles.optionTextDark, selected && styles.optionTextSelected, selected && isDark && styles.optionTextSelectedDark]} numberOfLines={2}>{option.label}</Text>
-          </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
+    <View style={styles.container}>
+      <TouchableOpacity
+        style={[styles.trigger, isDark && styles.triggerDark, isOpen && styles.triggerOpen]}
+        onPress={() => setIsOpen((current) => !current)}
+        disabled={options.length === 0}
+      >
+        <View style={styles.triggerContent}>
+          {selectedOption ? <View style={[styles.dot, { backgroundColor: selectedOption.color ?? '#3B82F6' }]} /> : null}
+          <Text style={[styles.triggerText, isDark && styles.triggerTextDark]} numberOfLines={1} adjustsFontSizeToFit>
+            {selectedOption?.label ?? 'No options'}
+          </Text>
+        </View>
+        <Text style={[styles.chevron, isDark && styles.triggerTextDark]}>{isOpen ? '^' : 'v'}</Text>
+      </TouchableOpacity>
+
+      {isOpen ? (
+        <View style={[styles.menu, isDark && styles.menuDark]}>
+          {options.map((option) => {
+            const selected = option.value === value;
+            return (
+              <TouchableOpacity
+                key={option.value}
+                onPress={() => chooseOption(option.value)}
+                style={[styles.option, selected && styles.optionSelected, selected && isDark && styles.optionSelectedDark]}
+              >
+                <View style={[styles.dot, { backgroundColor: option.color ?? '#3B82F6' }]} />
+                <Text style={[styles.optionText, isDark && styles.optionTextDark, selected && styles.optionTextSelected, selected && isDark && styles.optionTextSelectedDark]} numberOfLines={2}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    gap: 8,
-    paddingVertical: 2,
+  container: {
+    width: '100%',
+    gap: 6,
   },
-  option: {
+  trigger: {
     minHeight: 42,
-    maxWidth: 240,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 999,
+    borderColor: '#cbd5e1',
+    borderRadius: 10,
     paddingHorizontal: 12,
     backgroundColor: '#fff',
   },
-  optionSelected: {
-    borderWidth: 2,
-    backgroundColor: '#f0f9ff',
-  },
-  optionDark: {
+  triggerDark: {
     borderColor: '#334155',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#020617',
+  },
+  triggerOpen: {
+    borderColor: '#22d3ee',
+  },
+  triggerContent: {
+    minWidth: 0,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  triggerText: {
+    flex: 1,
+    color: '#111827',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  triggerTextDark: {
+    color: '#f8fafc',
+  },
+  chevron: {
+    color: '#334155',
+    fontSize: 11,
+    fontWeight: '900',
+    marginLeft: 10,
+  },
+  menu: {
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 10,
+    backgroundColor: '#fff',
+  },
+  menuDark: {
+    borderColor: '#334155',
+    backgroundColor: '#020617',
+  },
+  option: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  optionSelected: {
+    backgroundColor: '#f0f9ff',
   },
   optionSelectedDark: {
     backgroundColor: '#164e63',
