@@ -21,9 +21,8 @@
     "build:mobile": "npm --workspace 3d-jobs-mobile run build || echo \"No build script for mobile\"",
     "db:migrate": "npm --workspace @3d-jobs/db run migrate",
     "db:seed": "npm --workspace @3d-jobs/db run seed",
-    "lint": "npm workspaces run lint"
-  }
-  ,
+    "lint": "npm --workspace 3d-jobs-web run lint && npm --workspace 3d-jobs-mobile run lint"
+  },
   "devDependencies": {
     "concurrently": "^8.2.0"
   }

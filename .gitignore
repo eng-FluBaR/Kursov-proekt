@@ -1,12 +1,59 @@
+# Dependencies
 node_modules/
 **/node_modules/
-.expo/
-.expo-shared/
-.next/
-.vscode/
-.DS_Store
+
+# Environment and secrets
 .env
+.env.*
+!.env.example
+
+# Logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Build output and caches
+.next/
+**/.next/
 dist/
+**/dist/
 build/
-package-lock.json
+**/build/
+out/
+**/out/
+coverage/
+**/coverage/
+*.tsbuildinfo
+
+# Expo / React Native
+.expo/
+**/.expo/
+.expo-shared/
+web-build/
+**/web-build/
+expo-env.d.ts
+**/expo-env.d.ts
+.metro-health-check*
+ios/
+android/
+**/ios/
+**/android/
+
+# Local IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local worktrees and generated uploads
+3d-jobs-mobile.worktrees/
+3d-jobs-web/uploads/
+
+# Certificates and mobile signing assets
+*.pem
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
