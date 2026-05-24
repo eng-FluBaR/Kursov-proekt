@@ -1,6 +1,6 @@
 [build]
-  command = "npm run build"
-  publish = "dist"
+  command = "npm --workspace 3d-jobs-mobile run build"
+  publish = "3d-jobs-mobile/dist"
 
 [build.environment]
   NODE_VERSION = "20"
