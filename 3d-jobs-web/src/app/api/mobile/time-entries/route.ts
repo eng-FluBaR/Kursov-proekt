@@ -9,6 +9,18 @@ import { getUserAccessibleTaskIds } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
+function parsePagination(url: URL) {
+  const rawLimit = Number(url.searchParams.get('limit'));
+  const rawOffset = Number(url.searchParams.get('offset'));
+  const rawPage = Number(url.searchParams.get('page'));
+  const enabled = url.searchParams.has('limit') || url.searchParams.has('offset') || url.searchParams.has('page');
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 100) : 50;
+  const pageOffset = Number.isFinite(rawPage) && rawPage > 1 ? (Math.floor(rawPage) - 1) * limit : 0;
+  const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? Math.floor(rawOffset) : pageOffset;
+
+  return { enabled, limit, offset };
+}
+
 async function createJob(authUserId: string, body: Record<string, unknown>) {
   const projectId = typeof body.projectId === 'string' ? body.projectId.trim() : '';
   const taskTypeId = typeof body.taskTypeId === 'string' ? body.taskTypeId.trim() : '';
@@ -199,6 +211,7 @@ export async function GET(request: Request) {
   const projectId = url.searchParams.get('projectId');
   const ownOnly = url.searchParams.get('ownOnly') === 'true';
   const sharedOnly = url.searchParams.get('sharedOnly') === 'true';
+  const pagination = parsePagination(url);
   const db = getDb();
 
   if (status) {
@@ -212,7 +225,20 @@ export async function GET(request: Request) {
       }
     } else if (sharedOnly) {
       if (sharedJobIds.length === 0) {
-        return NextResponse.json({ jobs: [] });
+        return NextResponse.json({
+          jobs: [],
+          ...(pagination.enabled
+            ? {
+                pagination: {
+                  limit: pagination.limit,
+                  offset: pagination.offset,
+                  returned: 0,
+                  hasMore: false,
+                  nextOffset: null,
+                },
+              }
+            : {}),
+        });
       }
       conditions.push(inArray(jobs.id, sharedJobIds));
     } else if (ownOnly) {
@@ -233,7 +259,7 @@ export async function GET(request: Request) {
       conditions.push(eq(jobs.projectId, projectId));
     }
 
-    const jobsList = await db
+    const jobsQuery = db
       .select({
         id: jobs.id,
         projectId: jobs.projectId,
@@ -252,7 +278,14 @@ export async function GET(request: Request) {
       .leftJoin(projects, eq(jobs.projectId, projects.id))
       .leftJoin(taskTypes, eq(jobs.taskTypeId, taskTypes.id))
       .where(and(...conditions))
-      .orderBy(desc(jobs.createdAt));
+      .orderBy(desc(jobs.createdAt))
+      .$dynamic();
+
+    const queriedJobs = pagination.enabled
+      ? await jobsQuery.limit(pagination.limit + 1).offset(pagination.offset)
+      : await jobsQuery;
+    const hasMore = pagination.enabled && queriedJobs.length > pagination.limit;
+    const jobsList = pagination.enabled ? queriedJobs.slice(0, pagination.limit) : queriedJobs;
 
     const jobIds = jobsList.map((job) => job.id);
     const durationRows = jobIds.length > 0
@@ -277,6 +310,17 @@ export async function GET(request: Request) {
         isShared: job.userId !== authUser.id,
         totalDurationMinutes: durationByJobId.get(job.id) ?? 0,
       })),
+      ...(pagination.enabled
+        ? {
+            pagination: {
+              limit: pagination.limit,
+              offset: pagination.offset,
+              returned: jobsList.length,
+              hasMore,
+              nextOffset: hasMore ? pagination.offset + pagination.limit : null,
+            },
+          }
+        : {}),
     });
   }
 
@@ -285,7 +329,7 @@ export async function GET(request: Request) {
     entryConditions.push(eq(timeEntries.projectId, projectId));
   }
 
-  const rows = await db
+  const entriesQuery = db
     .select({
       id: timeEntries.id,
       projectId: timeEntries.projectId,
@@ -305,7 +349,14 @@ export async function GET(request: Request) {
     .leftJoin(jobs, eq(jobs.id, timeEntries.jobId))
     .leftJoin(taskTypes, eq(taskTypes.id, timeEntries.taskTypeId))
     .where(and(...entryConditions))
-    .orderBy(desc(timeEntries.startedAt));
+    .orderBy(desc(timeEntries.startedAt))
+    .$dynamic();
+
+  const queriedRows = pagination.enabled
+    ? await entriesQuery.limit(pagination.limit + 1).offset(pagination.offset)
+    : await entriesQuery.limit(100);
+  const hasMore = queriedRows.length > pagination.limit;
+  const rows = pagination.enabled ? queriedRows.slice(0, pagination.limit) : queriedRows.slice(0, 100);
 
   return NextResponse.json({
     timeEntries: rows.map((entry) => ({
@@ -313,5 +364,12 @@ export async function GET(request: Request) {
       startedAt: entry.startedAt.toISOString(),
       endedAt: entry.endedAt?.toISOString() ?? null,
     })),
+    pagination: {
+      limit: pagination.enabled ? pagination.limit : 100,
+      offset: pagination.enabled ? pagination.offset : 0,
+      returned: rows.length,
+      hasMore,
+      nextOffset: hasMore ? (pagination.enabled ? pagination.offset + pagination.limit : 100) : null,
+    },
   });
 }

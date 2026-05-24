@@ -7,6 +7,18 @@ import { getDb } from '@/lib/db';
 import { getUserAccessibleTaskIds } from '@/lib/permissions';
 import { getUserSharedJobIds } from '@/lib/job-permissions';
 
+function parsePagination(url: URL) {
+  const rawLimit = Number(url.searchParams.get('limit'));
+  const rawOffset = Number(url.searchParams.get('offset'));
+  const rawPage = Number(url.searchParams.get('page'));
+  const enabled = url.searchParams.has('limit') || url.searchParams.has('offset') || url.searchParams.has('page');
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 100) : 50;
+  const pageOffset = Number.isFinite(rawPage) && rawPage > 1 ? (Math.floor(rawPage) - 1) * limit : 0;
+  const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? Math.floor(rawOffset) : pageOffset;
+
+  return { enabled, limit, offset };
+}
+
 export async function POST(request: Request) {
   const authUser = getRequestAuthUser(request);
   if (!authUser) {
@@ -105,6 +117,7 @@ export async function GET(request: Request) {
     const status = url.searchParams.get('status') || 'active';
     const projectId = url.searchParams.get('projectId');
     const ownOnly = url.searchParams.get('ownOnly') === 'true';
+    const pagination = parsePagination(url);
 
     const db = getDb();
     
@@ -130,8 +143,7 @@ export async function GET(request: Request) {
       conditions.push(eq(jobs.projectId, projectId));
     }
 
-    // Execute the query
-    const jobsList = await db
+    const jobsQuery = db
       .select({
         id: jobs.id,
         projectId: jobs.projectId,
@@ -148,7 +160,14 @@ export async function GET(request: Request) {
       .leftJoin(projects, eq(jobs.projectId, projects.id))
       .leftJoin(taskTypes, eq(jobs.taskTypeId, taskTypes.id))
       .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(jobs.createdAt);
+      .orderBy(jobs.createdAt)
+      .$dynamic();
+
+    const queriedJobs = pagination.enabled
+      ? await jobsQuery.limit(pagination.limit + 1).offset(pagination.offset)
+      : await jobsQuery;
+    const hasMore = pagination.enabled && queriedJobs.length > pagination.limit;
+    const jobsList = pagination.enabled ? queriedJobs.slice(0, pagination.limit) : queriedJobs;
 
     const jobIds = jobsList.map((job) => job.id);
     const durationRows = jobIds.length > 0
@@ -172,6 +191,17 @@ export async function GET(request: Request) {
         ...job,
         totalDurationMinutes: durationByJobId.get(job.id) ?? 0,
       })),
+      ...(pagination.enabled
+        ? {
+            pagination: {
+              limit: pagination.limit,
+              offset: pagination.offset,
+              returned: jobsList.length,
+              hasMore,
+              nextOffset: hasMore ? pagination.offset + pagination.limit : null,
+            },
+          }
+        : {}),
     });
   } catch (error) {
     console.error('Failed to fetch jobs:', error);

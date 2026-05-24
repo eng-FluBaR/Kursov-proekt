@@ -46,6 +46,8 @@ const PROJECT_SEEDS = [
 ];
 
 const FILE_TYPES = ['image', 'model', 'document', 'other'] as const;
+const LARGE_SEED_ENABLED = process.env.SEED_LARGE_DATASET === 'true';
+const LARGE_JOB_COUNT = Number(process.env.SEED_LARGE_JOB_COUNT ?? 10000);
 
 function hoursAgo(hours: number) {
   return new Date(Date.now() - hours * 60 * 60 * 1000);
@@ -200,6 +202,55 @@ async function seed() {
         fileSizeBytes: 8421,
       },
     ]);
+
+    if (LARGE_SEED_ENABLED) {
+      console.log(`Seeding ${LARGE_JOB_COUNT} additional jobs and time entries for scalability checks...`);
+
+      const chunkSize = 500;
+      const largeJobs = Array.from({ length: LARGE_JOB_COUNT }, (_, index) => {
+        const project = seededProjects[index % seededProjects.length];
+        const taskType = seededTaskTypes[index % seededTaskTypes.length];
+
+        return {
+          userId: project.userId,
+          projectId: project.id,
+          taskTypeId: taskType.id,
+          title: `Load test task ${String(index + 1).padStart(5, '0')}`,
+          description: `Generated scalability validation task ${index + 1}`,
+          status: index % 5 === 0 ? 'completed' : index % 7 === 0 ? 'paused' : 'active',
+        };
+      });
+
+      const largeTimeEntries = [];
+
+      for (let index = 0; index < largeJobs.length; index += chunkSize) {
+        const insertedJobs = await db
+          .insert(jobs)
+          .values(largeJobs.slice(index, index + chunkSize))
+          .returning();
+
+        for (let itemIndex = 0; itemIndex < insertedJobs.length; itemIndex += 1) {
+          const job = insertedJobs[itemIndex];
+          const startedAt = hoursAgo((index + itemIndex) % 720);
+          const durationMinutes = 15 + ((index + itemIndex) % 180);
+
+          largeTimeEntries.push({
+            userId: job.userId,
+            projectId: job.projectId,
+            jobId: job.id,
+            taskTypeId: job.taskTypeId,
+            startedAt,
+            endedAt: new Date(startedAt.getTime() + durationMinutes * 60000),
+            durationMinutes,
+            note: `Generated load test entry ${index + itemIndex + 1}`,
+          });
+        }
+      }
+
+      for (let index = 0; index < largeTimeEntries.length; index += chunkSize) {
+        await db.insert(timeEntries).values(largeTimeEntries.slice(index, index + chunkSize));
+      }
+    }
 
     console.log('✅ Database seed completed successfully!');
     process.exit(0);

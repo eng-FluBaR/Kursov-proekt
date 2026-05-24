@@ -5,6 +5,18 @@ import { jobVisibilityPermissions, jobs, projects, taskTypes, timeEntries } from
 import { getRequestAuthUser } from '@/lib/auth-session';
 import { getDb } from '@/lib/db';
 
+function parsePagination(url: URL) {
+  const rawLimit = Number(url.searchParams.get('limit'));
+  const rawOffset = Number(url.searchParams.get('offset'));
+  const rawPage = Number(url.searchParams.get('page'));
+  const enabled = url.searchParams.has('limit') || url.searchParams.has('offset') || url.searchParams.has('page');
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 100) : 100;
+  const pageOffset = Number.isFinite(rawPage) && rawPage > 1 ? (Math.floor(rawPage) - 1) * limit : 0;
+  const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? Math.floor(rawOffset) : pageOffset;
+
+  return { enabled, limit, offset };
+}
+
 export async function POST(request: Request) {
   const authUser = getRequestAuthUser(request);
   if (!authUser) {
@@ -122,6 +134,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const projectId = url.searchParams.get('projectId');
     const jobId = url.searchParams.get('jobId');
+    const pagination = parsePagination(url);
     const conditions = [eq(timeEntries.userId, authUser.id)];
 
     if (projectId) {
@@ -133,7 +146,7 @@ export async function GET(request: Request) {
     }
 
     const db = getDb();
-    const entries = await db
+    const entriesQuery = db
       .select({
         id: timeEntries.id,
         projectId: timeEntries.projectId,
@@ -153,7 +166,13 @@ export async function GET(request: Request) {
       .leftJoin(taskTypes, eq(taskTypes.id, timeEntries.taskTypeId))
       .where(and(...conditions))
       .orderBy(desc(timeEntries.startedAt))
-      .limit(100);
+      .$dynamic();
+
+    const queriedEntries = await entriesQuery
+      .limit(pagination.limit + 1)
+      .offset(pagination.enabled ? pagination.offset : 0);
+    const hasMore = queriedEntries.length > pagination.limit;
+    const entries = queriedEntries.slice(0, pagination.limit);
 
     const timeEntriesList = entries.map((entry) => ({
       ...entry,
@@ -161,7 +180,17 @@ export async function GET(request: Request) {
       endedAt: entry.endedAt?.toISOString() ?? null,
     }));
 
-    return NextResponse.json({ entries: timeEntriesList, timeEntries: timeEntriesList });
+    return NextResponse.json({
+      entries: timeEntriesList,
+      timeEntries: timeEntriesList,
+      pagination: {
+        limit: pagination.limit,
+        offset: pagination.enabled ? pagination.offset : 0,
+        returned: timeEntriesList.length,
+        hasMore,
+        nextOffset: hasMore ? (pagination.enabled ? pagination.offset : 0) + pagination.limit : null,
+      },
+    });
   } catch (error) {
     console.error('Failed to fetch time entries:', error);
     return NextResponse.json(

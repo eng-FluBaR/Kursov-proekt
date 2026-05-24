@@ -554,6 +554,20 @@ Seed sample/reference data:
 npm run db:seed
 ```
 
+Seed a large validation dataset for scalability checks:
+
+```bash
+$env:SEED_LARGE_DATASET="true"; npm run db:seed
+```
+
+Optional size override:
+
+```bash
+$env:SEED_LARGE_DATASET="true"; $env:SEED_LARGE_JOB_COUNT="10000"; npm run db:seed
+```
+
+The large seed mode inserts generated jobs and time entries in chunks. It is opt-in so normal demo seeding stays fast.
+
 ### 11.4 Run the Apps
 
 Run web/API and mobile together:
@@ -641,6 +655,18 @@ Netlify settings:
 | Functions/runtime | Netlify Next.js runtime | Required for API routes/server rendering. |
 
 ## 13. Troubleshooting Guide
+
+### 13.0 Paging and Large Lists
+
+Jobs and time entries support server-side paging through query parameters:
+
+```text
+/api/jobs?status=all&limit=50&offset=0
+/api/time-entries?limit=50&page=2
+/api/mobile/time-entries?status=active&limit=50&offset=0
+```
+
+Paged responses include a `pagination` object with `limit`, `offset`, `returned`, `hasMore`, and `nextOffset`.
 
 ### 13.1 Database connection fails
 
