@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 import { PreviewHint } from '@/components/preview-hint';
 import { AppMenu } from '@/components/app-menu';
@@ -15,6 +15,7 @@ const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export default function CalendarScreen() {
   const { token } = useAuth();
   const { isDark } = useAppTheme();
+  const { width } = useWindowDimensions();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selectedType, setSelectedType] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
@@ -25,6 +26,8 @@ export default function CalendarScreen() {
   const month = today.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOffset = (new Date(year, month, 1).getDay() + 6) % 7;
+  const calendarWidth = Math.max(0, width - 32);
+  const dayCardWidth = Math.max(38, Math.floor((calendarWidth - 36) / 7));
 
   const loadJobs = useCallback(async () => {
     if (!token) {
@@ -86,7 +89,9 @@ export default function CalendarScreen() {
     <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
       <ScrollView style={styles.scroll}>
         <AppMenu title="Calendar" />
-        <Text style={[styles.title, isDark && styles.textLight]}>{today.toLocaleString('en-US', { month: 'long', year: 'numeric' })}</Text>
+        <Text style={[styles.title, isDark && styles.textLight]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+          {today.toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+        </Text>
         {!token ? (
           <PreviewHint>
             Calendar previews how tasks appear by creation day. Login to open real task details from each date.
@@ -102,22 +107,26 @@ export default function CalendarScreen() {
         {status ? <Text style={[styles.status, isDark && styles.statusDark]}>{status}</Text> : null}
 
         <View style={styles.weekRow}>
-          {weekdays.map((day) => <Text key={day} style={[styles.weekday, isDark && styles.textMuted]}>{day}</Text>)}
+          {weekdays.map((day) => (
+            <Text key={day} style={[styles.weekday, isDark && styles.textMuted, { width: dayCardWidth }]} numberOfLines={1} adjustsFontSizeToFit>
+              {day}
+            </Text>
+          ))}
         </View>
 
         <View style={styles.grid}>
-          {Array.from({ length: firstDayOffset }).map((_, index) => <View key={`blank-${index}`} style={[styles.dayCard, isDark && styles.dayCardDark]} />)}
+          {Array.from({ length: firstDayOffset }).map((_, index) => <View key={`blank-${index}`} style={[styles.dayCard, isDark && styles.dayCardDark, { width: dayCardWidth }]} />)}
           {Array.from({ length: daysInMonth }, (_, index) => index + 1).map((day) => {
             const dayJobs = jobsByDay[day] ?? [];
             return (
-              <View key={day} style={[styles.dayCard, isDark && styles.dayCardDark, dayJobs.length > 0 && (isDark ? styles.dayCardActiveDark : styles.dayCardActive)]}>
+              <View key={day} style={[styles.dayCard, isDark && styles.dayCardDark, dayJobs.length > 0 && (isDark ? styles.dayCardActiveDark : styles.dayCardActive), { width: dayCardWidth }]}>
                 <View style={styles.dayHeader}>
-                  <Text style={[styles.dayNumber, isDark && styles.textLight]}>{day}</Text>
-                  {dayJobs.length > 0 ? <Text style={styles.count}>{dayJobs.length}</Text> : null}
+                  <Text style={[styles.dayNumber, isDark && styles.textLight]} numberOfLines={1}>{day}</Text>
+                  {dayJobs.length > 0 ? <Text style={styles.count} numberOfLines={1}>{dayJobs.length}</Text> : null}
                 </View>
                 {dayJobs.slice(0, 2).map((job) => (
                   <TouchableOpacity key={job.id} style={[styles.jobPill, isDark && styles.jobPillDark]} onPress={() => openJob(job)}>
-                    <Text style={[styles.jobPillText, isDark && styles.jobPillTextDark]} numberOfLines={1}>{job.title}</Text>
+                    <Text style={[styles.jobPillText, isDark && styles.jobPillTextDark]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75}>{job.title}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -141,9 +150,9 @@ const styles = StyleSheet.create({
   status: { borderRadius: 10, backgroundColor: '#eff6ff', color: '#1d4ed8', padding: 12, marginBottom: 12 },
   statusDark: { backgroundColor: '#172554', color: '#bfdbfe' },
   weekRow: { flexDirection: 'row', gap: 6, marginBottom: 8 },
-  weekday: { flex: 1, textAlign: 'center', color: '#64748b', fontSize: 11, fontWeight: '800' },
+  weekday: { textAlign: 'center', color: '#64748b', fontSize: 11, fontWeight: '800' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  dayCard: { width: '13.4%', minHeight: 82, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, backgroundColor: '#f8fafc', padding: 6 },
+  dayCard: { minHeight: 82, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, backgroundColor: '#f8fafc', padding: 5 },
   dayCardDark: { borderColor: '#334155', backgroundColor: '#0f172a' },
   dayCardActive: { borderColor: '#67e8f9', backgroundColor: '#ecfeff' },
   dayCardActiveDark: { borderColor: '#22d3ee', backgroundColor: '#164e63' },

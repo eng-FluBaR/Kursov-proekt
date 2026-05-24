@@ -156,7 +156,7 @@ export default function TimerScreen() {
     <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
       <ScrollView contentContainerStyle={styles.content}>
         <AppMenu title="Timer" />
-        <Text style={[styles.title, isDark && styles.textLight]}>Timer</Text>
+        <Text style={[styles.title, isDark && styles.textLight]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>Timer</Text>
         {!token ? (
           <PreviewHint>
             Pick a sample job to see how the timer is organized. After login, Start and Stop save time directly to that task.
@@ -166,10 +166,10 @@ export default function TimerScreen() {
         {status ? <Text style={[styles.status, isDark && styles.statusDark]}>{status}</Text> : null}
 
         <View style={[styles.displayCard, isDark && styles.displayCardDark]}>
-          <Text style={styles.displayTime}>{formatElapsed(elapsed)}</Text>
-          <Text style={[styles.displayLabel, isDark && styles.textLight]}>{selectedJob?.title || 'Select job'}</Text>
-          {selectedJob ? <Text style={[styles.displayMeta, isDark && styles.textMuted]}>{selectedJob.projectName} - {selectedJob.taskTypeName ?? 'No type'}</Text> : null}
-          {selectedJob ? <Text style={[styles.displayMeta, isDark && styles.textMuted]}>Total on task: {formatDuration(selectedJob.totalDurationMinutes ?? 0)}</Text> : null}
+          <Text style={styles.displayTime} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{formatElapsed(elapsed)}</Text>
+          <Text style={[styles.displayLabel, isDark && styles.textLight]} numberOfLines={2}>{selectedJob?.title || 'Select job'}</Text>
+          {selectedJob ? <Text style={[styles.displayMeta, isDark && styles.textMuted]} numberOfLines={2}>{selectedJob.projectName} - {selectedJob.taskTypeName ?? 'No type'}</Text> : null}
+          {selectedJob ? <Text style={[styles.displayMeta, isDark && styles.textMuted]} numberOfLines={1} adjustsFontSizeToFit>Total on task: {formatDuration(selectedJob.totalDurationMinutes ?? 0)}</Text> : null}
         </View>
 
         <View style={styles.section}>
@@ -180,11 +180,11 @@ export default function TimerScreen() {
         <View style={styles.controls}>
           {!isRunning ? (
             <TouchableOpacity style={[styles.controlButton, styles.startButton]} onPress={startTimer} disabled={isLoading}>
-              <Text style={styles.controlButtonText}>Start</Text>
+              <Text style={styles.controlButtonText} numberOfLines={1} adjustsFontSizeToFit>Start</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={[styles.controlButton, styles.stopButton]} onPress={stopTimer} disabled={isLoading}>
-              <Text style={styles.controlButtonText}>Stop</Text>
+              <Text style={styles.controlButtonText} numberOfLines={1} adjustsFontSizeToFit>Stop</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -198,15 +198,15 @@ const styles = StyleSheet.create({
   containerDark: { backgroundColor: '#020617' },
   content: { padding: 16, gap: 20 },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 20, color: '#111827' },
-  displayCard: { backgroundColor: '#ecfeff', borderWidth: 3, borderColor: '#06b6d4', borderRadius: 16, padding: 32, alignItems: 'center', marginBottom: 20 },
+  displayCard: { backgroundColor: '#ecfeff', borderWidth: 3, borderColor: '#06b6d4', borderRadius: 16, padding: 22, alignItems: 'center', marginBottom: 20 },
   displayCardDark: { backgroundColor: '#0f172a', borderColor: '#155e75' },
-  displayTime: { fontSize: 48, fontWeight: 'bold', fontFamily: 'monospace', color: '#0e7490', marginBottom: 12 },
+  displayTime: { width: '100%', textAlign: 'center', fontSize: 48, fontWeight: 'bold', fontFamily: 'monospace', color: '#0e7490', marginBottom: 12 },
   displayLabel: { fontSize: 16, fontWeight: '800', color: '#111827', textAlign: 'center' },
   displayMeta: { marginTop: 6, fontSize: 12, fontWeight: '600', color: '#475569', textAlign: 'center' },
   section: { marginVertical: 12 },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 8, color: '#333' },
-  controls: { flexDirection: 'row', gap: 12, marginTop: 20 },
-  controlButton: { flex: 1, paddingVertical: 16, borderRadius: 10, alignItems: 'center' },
+  controls: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 20 },
+  controlButton: { flexGrow: 1, flexBasis: 140, paddingVertical: 16, borderRadius: 10, alignItems: 'center' },
   startButton: { backgroundColor: '#10B981' },
   stopButton: { backgroundColor: '#EF4444' },
   controlButtonText: { color: '#fff', fontWeight: '800', fontSize: 16 },

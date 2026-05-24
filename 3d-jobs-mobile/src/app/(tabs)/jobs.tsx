@@ -52,10 +52,6 @@ export default function JobsScreen() {
   const [timerJobId, setTimerJobId] = useState('');
   const [elapsed, setElapsed] = useState(0);
 
-  const projectOptions = useMemo(
-    () => projects.map((project) => ({ label: project.name, value: project.id, color: project.color })),
-    [projects],
-  );
   const taskTypeOptions = useMemo(
     () => taskTypes.map((taskType) => ({ label: taskType.name, value: taskType.id })),
     [taskTypes],
@@ -70,6 +66,12 @@ export default function JobsScreen() {
   const activeJobs = useMemo(() => jobs.filter((job) => job.status === 'active'), [jobs]);
   const timerJob = activeJobs.find((job) => job.id === timerJobId) ?? activeJobs[0];
   const isTimerRunning = Boolean(activeEntry);
+  const selectedProjectId = projects.some((project) => project.id === projectId)
+    ? projectId
+    : projects[0]?.id ?? '';
+  const selectedTaskTypeId = taskTypes.some((taskType) => taskType.id === taskTypeId)
+    ? taskTypeId
+    : taskTypes[0]?.id ?? '';
 
   const loadData = useCallback(async () => {
     if (!token) {
@@ -143,13 +145,21 @@ export default function JobsScreen() {
   });
 
   async function createJob() {
-    if (!token || !projectId || !title.trim()) {
+    if (!token || !selectedProjectId || !selectedTaskTypeId || !title.trim()) {
       if (!token) {
         setStatus('Login to create real jobs.');
         router.push('/login');
         return;
       }
-      setStatus('Choose project and enter task name.');
+      if (!selectedProjectId) {
+        setStatus('No project is available for this account.');
+        return;
+      }
+      if (!selectedTaskTypeId) {
+        setStatus('Please select a task type.');
+        return;
+      }
+      setStatus('Task name is required.');
       return;
     }
 
@@ -161,8 +171,8 @@ export default function JobsScreen() {
         method: 'POST',
         token,
         body: {
-          projectId,
-          taskTypeId,
+          projectId: selectedProjectId,
+          taskTypeId: selectedTaskTypeId,
           title,
           description,
         },
@@ -293,7 +303,7 @@ export default function JobsScreen() {
           <View style={styles.timerHeader}>
             <View style={styles.timerTitleWrap}>
               <Text style={[styles.kickerLight, isDark && styles.textMuted]}>Active timer</Text>
-              <Text style={[styles.timerTime, isDark && styles.textLight]}>{formatElapsed(elapsed)}</Text>
+              <Text style={[styles.timerTime, isDark && styles.textLight]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65}>{formatElapsed(elapsed)}</Text>
               <Text style={[styles.timerState, isDark && styles.textMuted]}>{isTimerRunning ? 'Tracking live in seconds' : 'Timer idle'}</Text>
             </View>
             <TouchableOpacity
@@ -301,7 +311,7 @@ export default function JobsScreen() {
               onPress={isTimerRunning ? stopTimer : () => startTimer()}
               disabled={isSaving || activeJobs.length === 0}
             >
-              <Text style={styles.timerButtonText}>{isTimerRunning ? 'Stop timer' : 'Start timer'}</Text>
+              <Text style={styles.timerButtonText} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>{isTimerRunning ? 'Stop timer' : 'Start timer'}</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.timerSelect}>
@@ -314,9 +324,9 @@ export default function JobsScreen() {
           </View>
           {timerJob ? (
             <View style={styles.timerMetaRow}>
-              <Text style={[styles.metaChip, isDark && styles.metaChipDark]}>{timerJob.title}</Text>
-              <Text style={[styles.metaChip, isDark && styles.metaChipDark]}>{timerJob.projectName}</Text>
-              <Text style={[styles.metaChip, isDark && styles.metaChipDark]}>{timerJob.taskTypeName ?? 'No type'}</Text>
+              <Text style={[styles.metaChip, isDark && styles.metaChipDark]} numberOfLines={2}>{timerJob.title}</Text>
+              <Text style={[styles.metaChip, isDark && styles.metaChipDark]} numberOfLines={2}>{timerJob.projectName}</Text>
+              <Text style={[styles.metaChip, isDark && styles.metaChipDark]} numberOfLines={2}>{timerJob.taskTypeName ?? 'No type'}</Text>
             </View>
           ) : null}
         </View>
@@ -333,12 +343,7 @@ export default function JobsScreen() {
             <View>
               <Text style={[styles.sectionEyebrow, isDark && styles.textMuted]}>Task form</Text>
               <Text style={[styles.sectionTitle, isDark && styles.textLight]}>Create New Task</Text>
-              {!token ? <Text style={[styles.helpText, isDark && styles.textMuted]}>After login this form creates a task with project, task type, name and notes.</Text> : null}
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={[styles.fieldLabel, isDark && styles.textMuted]}>Project</Text>
-              <SimpleSelect value={projectId} options={projectOptions} onChange={setProjectId} />
+              {!token ? <Text style={[styles.helpText, isDark && styles.textMuted]}>After login this form creates a task with type, name and notes.</Text> : null}
             </View>
 
             <View style={styles.formGrid}>
@@ -350,7 +355,7 @@ export default function JobsScreen() {
               <View style={styles.formColumn}>
                 <Text style={[styles.fieldLabel, isDark && styles.textMuted]}>Task type</Text>
                 {!token ? <Text style={[styles.helpText, isDark && styles.textMuted]}>Types group tracked time by work activity.</Text> : null}
-                <SimpleSelect value={taskTypeId} options={taskTypeOptions} onChange={setTaskTypeId} />
+                <SimpleSelect value={selectedTaskTypeId} options={taskTypeOptions} onChange={setTaskTypeId} />
               </View>
             </View>
 
@@ -364,8 +369,20 @@ export default function JobsScreen() {
               onChangeText={setDescription}
               multiline
             />
-            <TouchableOpacity style={[styles.primaryButton, isSaving && styles.disabled]} onPress={createJob} disabled={isSaving}>
-              <Text style={styles.primaryText}>{isSaving ? 'Saving...' : token ? 'Create job' : 'Login to create'}</Text>
+            <TouchableOpacity
+              style={[styles.createSubmitButton, isSaving && styles.disabled]}
+              onPress={createJob}
+              disabled={isSaving || projects.length === 0 || taskTypes.length === 0}
+            >
+              <Text style={styles.primaryText} numberOfLines={1} adjustsFontSizeToFit>
+                {isSaving
+                  ? 'Saving...'
+                  : projects.length === 0
+                    ? 'No project available'
+                    : taskTypes.length === 0
+                      ? 'No task types available'
+                      : token ? 'Create Task' : 'Login to create'}
+              </Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -382,29 +399,29 @@ export default function JobsScreen() {
             <TextInput style={[styles.input, styles.textarea, isDark && styles.inputDark]} value={notes} onChangeText={setNotes} multiline editable={!selectedJob.isShared} />
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.primaryButton} onPress={() => startTimer(selectedJob)} disabled={isSaving}>
-                <Text style={styles.primaryText}>Start timer</Text>
+                <Text style={styles.primaryText} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75}>Start timer</Text>
               </TouchableOpacity>
               {!selectedJob.isShared ? (
                 <TouchableOpacity style={[styles.secondaryButton, isDark && styles.secondaryButtonDark]} onPress={() => updateSelectedJob()} disabled={isSaving}>
-                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]}>Save</Text>
+                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]} numberOfLines={1} adjustsFontSizeToFit>Save</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
             {!selectedJob.isShared ? (
               <View style={styles.buttonRow}>
                 <TouchableOpacity style={[styles.secondaryButton, isDark && styles.secondaryButtonDark]} onPress={() => updateSelectedJob('active')} disabled={isSaving}>
-                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]}>Active</Text>
+                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]} numberOfLines={1} adjustsFontSizeToFit>Active</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.secondaryButton, isDark && styles.secondaryButtonDark]} onPress={() => updateSelectedJob('paused')} disabled={isSaving}>
-                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]}>Pause</Text>
+                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]} numberOfLines={1} adjustsFontSizeToFit>Pause</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.secondaryButton, isDark && styles.secondaryButtonDark]} onPress={() => updateSelectedJob('completed')} disabled={isSaving}>
-                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]}>Complete</Text>
+                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]} numberOfLines={1} adjustsFontSizeToFit>Complete</Text>
                 </TouchableOpacity>
               </View>
             ) : null}
             <TouchableOpacity style={styles.closeButton} onPress={() => setSelectedJob(null)}>
-              <Text style={styles.closeText}>Close</Text>
+              <Text style={styles.closeText} numberOfLines={1} adjustsFontSizeToFit>Close</Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -415,7 +432,7 @@ export default function JobsScreen() {
           <TouchableOpacity key={job.id} style={[styles.jobCard, isDark && styles.cardDark]} onPress={() => openJob(job)}>
             <View style={styles.jobHeader}>
               <Text style={[styles.jobTitle, isDark && styles.textLight]}>{job.title}</Text>
-              <Text style={[styles.badge, isDark && styles.badgeDark]}>{job.status}</Text>
+              <Text style={[styles.badge, isDark && styles.badgeDark]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{job.status}</Text>
             </View>
             <Text style={[styles.meta, isDark && styles.textMuted]}>{job.projectName} - {job.taskTypeName ?? 'No type'}</Text>
             <Text style={[styles.meta, isDark && styles.textMuted]}>Tracked: {formatDuration(job.totalDurationMinutes ?? 0)}</Text>
@@ -437,25 +454,24 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 16, color: '#111827' },
   filters: { gap: 12, marginVertical: 16 },
   timerCard: { gap: 14, backgroundColor: '#f8fafc', borderRadius: 16, borderWidth: 1, borderColor: '#e5e7eb', padding: 16, marginBottom: 16 },
-  timerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  timerHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   timerTitleWrap: { flex: 1 },
   kickerLight: { color: '#64748b', fontSize: 11, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' },
   timerTime: { color: '#111827', fontSize: 32, fontWeight: '900', fontFamily: 'monospace', marginTop: 6 },
   timerState: { color: '#64748b', fontSize: 12, marginTop: 4 },
-  timerButton: { borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13, alignItems: 'center', justifyContent: 'center' },
+  timerButton: { minWidth: 112, maxWidth: '100%', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13, alignItems: 'center', justifyContent: 'center' },
   startTimerButton: { backgroundColor: '#34d399' },
   stopTimerButton: { backgroundColor: '#fb7185' },
   timerButtonText: { color: '#052e16', fontWeight: '900', fontSize: 13 },
   timerSelect: { gap: 8 },
   timerMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  metaChip: { overflow: 'hidden', borderRadius: 999, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#ffffff', color: '#334155', paddingHorizontal: 10, paddingVertical: 6, fontSize: 12, fontWeight: '700' },
+  metaChip: { maxWidth: '100%', overflow: 'hidden', borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#ffffff', color: '#334155', paddingHorizontal: 10, paddingVertical: 6, fontSize: 12, fontWeight: '700' },
   metaChipDark: { borderColor: '#334155', backgroundColor: '#020617', color: '#cbd5e1' },
   createCard: { gap: 12, backgroundColor: '#f8fafc', borderRadius: 14, borderWidth: 1, borderColor: '#e5e7eb', padding: 14, marginBottom: 16 },
   cardDark: { backgroundColor: '#0f172a', borderColor: '#334155' },
   sectionEyebrow: { color: '#64748b', fontSize: 11, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
   helpText: { color: '#64748b', fontSize: 12, lineHeight: 17 },
-  fieldGroup: { gap: 8 },
   fieldLabel: { color: '#334155', fontSize: 13, fontWeight: '800' },
   formGrid: { gap: 12 },
   formColumn: { gap: 8 },
@@ -468,17 +484,18 @@ const styles = StyleSheet.create({
   kicker: { color: '#67e8f9', fontSize: 11, fontWeight: '700', letterSpacing: 2, textTransform: 'uppercase' },
   detailTitle: { color: '#fff', fontSize: 22, fontWeight: '800' },
   jobCard: { backgroundColor: '#f9fafb', borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb', padding: 14, marginBottom: 10 },
-  jobHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  jobHeader: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 },
   jobTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: '#111827' },
-  badge: { overflow: 'hidden', borderRadius: 999, backgroundColor: '#dbeafe', color: '#1e40af', paddingHorizontal: 10, paddingVertical: 4, fontSize: 12, fontWeight: '700', textTransform: 'capitalize' },
+  badge: { maxWidth: 120, overflow: 'hidden', borderRadius: 999, backgroundColor: '#dbeafe', color: '#1e40af', paddingHorizontal: 10, paddingVertical: 4, fontSize: 12, fontWeight: '700', textTransform: 'capitalize' },
   badgeDark: { backgroundColor: '#164e63', color: '#cffafe' },
   meta: { marginTop: 4, color: '#64748b', fontSize: 12 },
   detailMeta: { color: '#cbd5e1' },
   shared: { marginTop: 6, color: '#047857', fontSize: 12, fontWeight: '700' },
-  buttonRow: { flexDirection: 'row', gap: 10 },
-  primaryButton: { flex: 1, alignItems: 'center', borderRadius: 10, backgroundColor: '#10b981', paddingVertical: 12 },
+  buttonRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  createSubmitButton: { alignSelf: 'flex-start', minWidth: 148, maxWidth: '100%', alignItems: 'center', borderRadius: 10, backgroundColor: '#10b981', paddingVertical: 11, paddingHorizontal: 18 },
+  primaryButton: { flexGrow: 1, flexBasis: 120, alignItems: 'center', borderRadius: 10, backgroundColor: '#10b981', paddingVertical: 12, paddingHorizontal: 10 },
   primaryText: { color: '#052e16', fontWeight: '800' },
-  secondaryButton: { flex: 1, alignItems: 'center', borderRadius: 10, borderWidth: 1, borderColor: '#cbd5e1', backgroundColor: '#fff', paddingVertical: 12 },
+  secondaryButton: { flexGrow: 1, flexBasis: 92, alignItems: 'center', borderRadius: 10, borderWidth: 1, borderColor: '#cbd5e1', backgroundColor: '#fff', paddingVertical: 12, paddingHorizontal: 8 },
   secondaryButtonDark: { borderColor: '#334155', backgroundColor: '#020617' },
   secondaryText: { color: '#111827', fontWeight: '700' },
   secondaryTextDark: { color: '#f8fafc' },

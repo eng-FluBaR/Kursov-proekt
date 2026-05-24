@@ -34,7 +34,7 @@ export function SimpleSelect<T extends string>({ value, options, onChange }: Sim
             ]}
           >
             <View style={[styles.dot, { backgroundColor: option.color ?? '#3B82F6' }]} />
-            <Text style={[styles.optionText, isDark && styles.optionTextDark, selected && styles.optionTextSelected, selected && isDark && styles.optionTextSelectedDark]}>{option.label}</Text>
+            <Text style={[styles.optionText, isDark && styles.optionTextDark, selected && styles.optionTextSelected, selected && isDark && styles.optionTextSelectedDark]} numberOfLines={2}>{option.label}</Text>
           </TouchableOpacity>
         );
       })}
@@ -49,6 +49,7 @@ const styles = StyleSheet.create({
   },
   option: {
     minHeight: 42,
+    maxWidth: 240,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -70,6 +71,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#164e63',
   },
   optionText: {
+    flexShrink: 1,
     color: '#333',
     fontSize: 13,
     fontWeight: '600',

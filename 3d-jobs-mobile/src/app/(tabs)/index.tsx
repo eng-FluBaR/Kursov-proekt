@@ -73,16 +73,16 @@ export default function DashboardScreen() {
 
         <View style={styles.statsGrid}>
           <View style={[styles.statCard, isDark && styles.cardDark]}>
-            <Text style={[styles.statLabel, isDark && styles.textMuted]}>Today&apos;s Total</Text>
-            <Text style={[styles.statValue, isDark && styles.textLight]}>{formatDuration(totalMinutesToday)}</Text>
+            <Text style={[styles.statLabel, isDark && styles.textMuted]} numberOfLines={2}>Today&apos;s Total</Text>
+            <Text style={[styles.statValue, isDark && styles.textLight]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{formatDuration(totalMinutesToday)}</Text>
           </View>
           <View style={[styles.statCard, isDark && styles.cardDark]}>
-            <Text style={[styles.statLabel, isDark && styles.textMuted]}>Projects</Text>
-            <Text style={[styles.statValue, isDark && styles.textLight]}>{projects.length}</Text>
+            <Text style={[styles.statLabel, isDark && styles.textMuted]} numberOfLines={2}>Projects</Text>
+            <Text style={[styles.statValue, isDark && styles.textLight]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{projects.length}</Text>
           </View>
           <View style={[styles.statCard, isDark && styles.cardDark]}>
-            <Text style={[styles.statLabel, isDark && styles.textMuted]}>Jobs</Text>
-            <Text style={[styles.statValue, isDark && styles.textLight]}>{jobs.length}</Text>
+            <Text style={[styles.statLabel, isDark && styles.textMuted]} numberOfLines={2}>Jobs</Text>
+            <Text style={[styles.statValue, isDark && styles.textLight]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{jobs.length}</Text>
           </View>
         </View>
 
@@ -95,12 +95,12 @@ export default function DashboardScreen() {
               <View key={entry.id} style={[styles.entryItem, isDark && styles.cardDark]}>
                 <View style={[styles.colorDot, { backgroundColor: entry.projectColor }]} />
                 <View style={styles.entryContent}>
-                  <Text style={[styles.entryTitle, isDark && styles.textLight]}>{entry.projectName}</Text>
-                  <Text style={[styles.entrySubtitle, isDark && styles.textMuted]}>
+                  <Text style={[styles.entryTitle, isDark && styles.textLight]} numberOfLines={1}>{entry.projectName}</Text>
+                  <Text style={[styles.entrySubtitle, isDark && styles.textMuted]} numberOfLines={2}>
                   {entry.jobTitle ?? entry.taskTypeName ?? 'Task'} - {new Date(entry.startedAt).toLocaleString()}
                   </Text>
                 </View>
-                <Text style={[styles.entryDuration, isDark && styles.textMuted]}>{formatDuration(entry.durationMinutes)}</Text>
+                <Text style={[styles.entryDuration, isDark && styles.textMuted]} numberOfLines={1} adjustsFontSizeToFit>{formatDuration(entry.durationMinutes)}</Text>
               </View>
             ))
           )}
@@ -114,26 +114,26 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   containerDark: { backgroundColor: '#020617' },
   scroll: { padding: 16 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  headerRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, gap: 10 },
   title: { fontSize: 28, fontWeight: 'bold' },
   subtitle: { marginTop: 4, color: '#666' },
   logoutButton: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
   logoutText: { color: '#333', fontWeight: '700' },
   error: { color: '#be123c', backgroundColor: '#fff1f2', borderRadius: 8, padding: 12, marginBottom: 12 },
   errorDark: { color: '#fecdd3', backgroundColor: '#4c0519' },
-  statsGrid: { flexDirection: 'row', gap: 12, marginBottom: 20 },
-  statCard: { flex: 1, backgroundColor: '#f0f9ff', padding: 16, borderRadius: 12, borderLeftWidth: 4, borderLeftColor: '#3B82F6' },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
+  statCard: { flexGrow: 1, flexBasis: 96, backgroundColor: '#f0f9ff', padding: 14, borderRadius: 12, borderLeftWidth: 4, borderLeftColor: '#3B82F6' },
   cardDark: { backgroundColor: '#0f172a', borderColor: '#334155' },
   statLabel: { fontSize: 12, color: '#666', marginBottom: 8 },
   statValue: { fontSize: 20, fontWeight: 'bold', color: '#333' },
   section: { marginBottom: 20 },
   sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
-  entryItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9f9f9', padding: 12, borderRadius: 8, marginBottom: 8, borderWidth: 1, borderColor: '#eee' },
-  colorDot: { width: 12, height: 12, borderRadius: 6, marginRight: 12 },
-  entryContent: { flex: 1 },
+  entryItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9f9f9', padding: 12, borderRadius: 8, marginBottom: 8, borderWidth: 1, borderColor: '#eee', gap: 10 },
+  colorDot: { width: 12, height: 12, borderRadius: 6 },
+  entryContent: { flex: 1, minWidth: 0 },
   entryTitle: { fontWeight: '600', fontSize: 14, marginBottom: 2 },
   entrySubtitle: { fontSize: 12, color: '#666' },
-  entryDuration: { fontSize: 12, fontWeight: '600', color: '#666' },
+  entryDuration: { flexShrink: 0, maxWidth: 78, fontSize: 12, fontWeight: '600', color: '#666', textAlign: 'right' },
   emptyText: { textAlign: 'center', color: '#999', paddingVertical: 20 },
   textLight: { color: '#f8fafc' },
   textMuted: { color: '#94a3b8' },

@@ -52,16 +52,16 @@ export function AppMenu({ title }: { title: string }) {
       <TouchableOpacity style={[styles.menuButton, isDark && styles.menuButtonDark]} onPress={() => setIsOpen(true)}>
         <MaterialIcons name="menu" size={24} color={isDark ? '#f8fafc' : '#111827'} />
       </TouchableOpacity>
-      <Text style={[styles.title, isDark && styles.titleDark]}>{title}</Text>
+      <Text style={[styles.title, isDark && styles.titleDark]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{title}</Text>
       <TouchableOpacity style={[styles.pillButton, isDark && styles.menuButtonDark]} onPress={handleThemeToggle}>
-        <Text style={[styles.pillText, isDark && styles.titleDark]}>{mode === 'dark' ? 'Light' : 'Dark'}</Text>
+        <Text style={[styles.pillText, isDark && styles.titleDark]} numberOfLines={1}>{mode === 'dark' ? 'Light' : 'Dark'}</Text>
       </TouchableOpacity>
 
       <Modal transparent visible={isOpen} animationType="fade" onRequestClose={() => setIsOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setIsOpen(false)}>
           <Pressable style={[styles.panel, isDark && styles.panelDark]}>
             <View style={styles.panelHeader}>
-              <Text style={[styles.panelTitle, isDark && styles.titleDark]}>Menu</Text>
+              <Text style={[styles.panelTitle, isDark && styles.titleDark]} numberOfLines={1}>Menu</Text>
               <TouchableOpacity onPress={() => setIsOpen(false)} style={[styles.closeButton, isDark && styles.menuButtonDark]}>
                 <MaterialIcons name="close" size={22} color={isDark ? '#f8fafc' : '#111827'} />
               </TouchableOpacity>
@@ -81,7 +81,7 @@ export function AppMenu({ title }: { title: string }) {
             })}
 
             <TouchableOpacity style={[styles.authButton, token ? styles.logoutButton : styles.loginButton]} onPress={handleAuthAction}>
-              <Text style={styles.authText}>{token ? 'Logout' : 'Login'}</Text>
+              <Text style={styles.authText} numberOfLines={1} adjustsFontSizeToFit>{token ? 'Logout' : 'Login'}</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -117,6 +117,7 @@ const styles = StyleSheet.create({
   titleDark: { color: '#f8fafc' },
   pillButton: {
     minHeight: 42,
+    maxWidth: 92,
     borderWidth: 1,
     borderColor: '#d1d5db',
     borderRadius: 999,
@@ -135,7 +136,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   panel: {
-    width: 280,
+    width: '86%',
+    maxWidth: 320,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: '#e5e7eb',

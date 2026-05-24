@@ -115,7 +115,7 @@ export default function ManualEntryScreen() {
     <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
       <ScrollView style={styles.scroll}>
         <AppMenu title="Manual log" />
-        <Text style={[styles.title, isDark && styles.textLight]}>Log Entry</Text>
+        <Text style={[styles.title, isDark && styles.textLight]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>Log Entry</Text>
         {!token ? (
           <PreviewHint>
             Manual entries are for work you forgot to start with the timer. Pick project, task type, date, start/end time and notes.
@@ -156,7 +156,7 @@ export default function ManualEntryScreen() {
         </View>
 
         <TouchableOpacity style={[styles.submitButton, isSaving && styles.buttonDisabled]} onPress={saveEntry} disabled={isSaving}>
-          <Text style={styles.submitButtonText}>{isSaving ? 'Saving...' : token ? 'Save Entry' : 'Login to save'}</Text>
+          <Text style={styles.submitButtonText} numberOfLines={1} adjustsFontSizeToFit>{isSaving ? 'Saving...' : token ? 'Save Entry' : 'Login to save'}</Text>
         </TouchableOpacity>
 
         <View style={styles.spacer} />
@@ -175,8 +175,8 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, backgroundColor: '#f9f9f9' },
   inputDark: { backgroundColor: '#0f172a', borderColor: '#334155', color: '#f8fafc' },
   textarea: { height: 100, textAlignVertical: 'top' },
-  row: { flexDirection: 'row', gap: 12 },
-  halfSection: { flex: 1, marginBottom: 16 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  halfSection: { flexGrow: 1, flexBasis: 130, marginBottom: 16 },
   submitButton: { backgroundColor: '#3B82F6', paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
   buttonDisabled: { opacity: 0.65 },
   submitButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },

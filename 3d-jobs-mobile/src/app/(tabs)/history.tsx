@@ -62,7 +62,7 @@ export default function HistoryScreen() {
     <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
       <ScrollView style={styles.scroll}>
         <AppMenu title="History" />
-        <Text style={[styles.title, isDark && styles.textLight]}>History</Text>
+        <Text style={[styles.title, isDark && styles.textLight]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>History</Text>
         {!token ? (
           <PreviewHint>
             History shows saved sessions, duration, notes and project filters. Login to see your real time entries.
@@ -84,13 +84,13 @@ export default function HistoryScreen() {
             <View key={entry.id} style={[styles.entryItem, isDark && styles.cardDark]}>
               <View style={[styles.colorDot, { backgroundColor: entry.projectColor }]} />
               <View style={styles.entryContent}>
-                <Text style={[styles.entryTitle, isDark && styles.textLight]}>{entry.projectName}</Text>
-                <Text style={[styles.entrySubtitle, isDark && styles.textMuted]}>
+                <Text style={[styles.entryTitle, isDark && styles.textLight]} numberOfLines={1}>{entry.projectName}</Text>
+                <Text style={[styles.entrySubtitle, isDark && styles.textMuted]} numberOfLines={2}>
                   {entry.jobTitle ?? entry.taskTypeName ?? 'Task'} - {new Date(entry.startedAt).toLocaleString()}
                 </Text>
-                {entry.note ? <Text style={[styles.entryNote, isDark && styles.textMuted]}>{entry.note}</Text> : null}
+                {entry.note ? <Text style={[styles.entryNote, isDark && styles.textMuted]} numberOfLines={2}>{entry.note}</Text> : null}
               </View>
-              <Text style={[styles.entryDuration, isDark && styles.textMuted]}>{formatDuration(entry.durationMinutes)}</Text>
+              <Text style={[styles.entryDuration, isDark && styles.textMuted]} numberOfLines={1} adjustsFontSizeToFit>{formatDuration(entry.durationMinutes)}</Text>
             </View>
           ))
         )}
@@ -109,14 +109,14 @@ const styles = StyleSheet.create({
   error: { color: '#be123c', backgroundColor: '#fff1f2', borderRadius: 8, padding: 12, marginBottom: 12 },
   errorDark: { color: '#fecdd3', backgroundColor: '#4c0519' },
   emptyText: { textAlign: 'center', color: '#999', paddingVertical: 40, fontSize: 16 },
-  entryItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9f9f9', padding: 12, borderRadius: 8, marginBottom: 8, borderWidth: 1, borderColor: '#eee' },
+  entryItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9f9f9', padding: 12, borderRadius: 8, marginBottom: 8, borderWidth: 1, borderColor: '#eee', gap: 10 },
   cardDark: { backgroundColor: '#0f172a', borderColor: '#334155' },
-  colorDot: { width: 12, height: 12, borderRadius: 6, marginRight: 12 },
-  entryContent: { flex: 1 },
+  colorDot: { width: 12, height: 12, borderRadius: 6 },
+  entryContent: { flex: 1, minWidth: 0 },
   entryTitle: { fontWeight: '600', fontSize: 14, marginBottom: 2 },
   entrySubtitle: { fontSize: 12, color: '#666', marginBottom: 4 },
   entryNote: { fontSize: 11, color: '#999', fontStyle: 'italic' },
-  entryDuration: { fontSize: 12, fontWeight: '600', color: '#666' },
+  entryDuration: { flexShrink: 0, maxWidth: 78, fontSize: 12, fontWeight: '600', color: '#666', textAlign: 'right' },
   textLight: { color: '#f8fafc' },
   textMuted: { color: '#94a3b8' },
 });

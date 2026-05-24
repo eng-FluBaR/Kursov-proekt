@@ -51,7 +51,7 @@ export default function CompletedTasksScreen() {
     <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
       <ScrollView style={styles.scroll}>
         <AppMenu title="Completed tasks" />
-        <Text style={[styles.title, isDark && styles.textLight]}>Finished work</Text>
+        <Text style={[styles.title, isDark && styles.textLight]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>Finished work</Text>
         {!token ? <PreviewHint>Completed tasks collect finished jobs and their tracked time. Login to open reports and real task details.</PreviewHint> : null}
         {isLoading ? <ActivityIndicator /> : null}
         {status ? <Text style={[styles.status, isDark && styles.statusDark]}>{status}</Text> : null}
@@ -59,9 +59,9 @@ export default function CompletedTasksScreen() {
         {jobs.length === 0 && !isLoading ? <Text style={[styles.empty, isDark && styles.textMuted]}>No completed tasks yet.</Text> : null}
         {jobs.map((job) => (
           <TouchableOpacity key={job.id} style={[styles.card, isDark && styles.cardDark]} onPress={() => openJob(job)}>
-            <Text style={[styles.jobTitle, isDark && styles.textLight]}>{job.title}</Text>
-            <Text style={[styles.meta, isDark && styles.textMuted]}>{job.projectName} - {job.taskTypeName ?? 'No type'}</Text>
-            <Text style={[styles.meta, isDark && styles.textMuted]}>Tracked: {formatDuration(job.totalDurationMinutes ?? 0)}</Text>
+            <Text style={[styles.jobTitle, isDark && styles.textLight]} numberOfLines={2}>{job.title}</Text>
+            <Text style={[styles.meta, isDark && styles.textMuted]} numberOfLines={2}>{job.projectName} - {job.taskTypeName ?? 'No type'}</Text>
+            <Text style={[styles.meta, isDark && styles.textMuted]} numberOfLines={1} adjustsFontSizeToFit>Tracked: {formatDuration(job.totalDurationMinutes ?? 0)}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>

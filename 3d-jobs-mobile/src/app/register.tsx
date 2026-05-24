@@ -31,10 +31,10 @@ export default function RegisterScreen() {
     <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
       <ScrollView contentContainerStyle={styles.content}>
         <TouchableOpacity style={[styles.themeButton, isDark && styles.themeButtonDark]} onPress={toggleTheme}>
-          <Text style={[styles.themeText, isDark && styles.textLight]}>{mode === 'dark' ? 'Light mode' : 'Dark mode'}</Text>
+          <Text style={[styles.themeText, isDark && styles.textLight]} numberOfLines={1} adjustsFontSizeToFit>{mode === 'dark' ? 'Light mode' : 'Dark mode'}</Text>
         </TouchableOpacity>
-        <Text style={[styles.title, isDark && styles.textLight]}>Create account</Text>
-        <Text style={[styles.subtitle, isDark && styles.textMuted]}>Your mobile account is saved in the same Neon database.</Text>
+        <Text style={[styles.title, isDark && styles.textLight]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>Create account</Text>
+        <Text style={[styles.subtitle, isDark && styles.textMuted]} numberOfLines={3}>Your mobile account is saved in the same Neon database.</Text>
 
         <Text style={[styles.label, isDark && styles.textMuted]}>Email</Text>
         <TextInput style={[styles.input, isDark && styles.inputDark]} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
@@ -45,10 +45,10 @@ export default function RegisterScreen() {
         {error ? <Text style={[styles.error, isDark && styles.errorDark]}>{error}</Text> : null}
 
         <TouchableOpacity style={[styles.button, isSubmitting && styles.buttonDisabled]} onPress={submit} disabled={isSubmitting}>
-          <Text style={styles.buttonText}>{isSubmitting ? 'Creating...' : 'Create account'}</Text>
+          <Text style={styles.buttonText} numberOfLines={1} adjustsFontSizeToFit>{isSubmitting ? 'Creating...' : 'Create account'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.previewButton, isDark && styles.previewButtonDark]} onPress={() => router.replace('/(tabs)')}>
-          <Text style={[styles.previewText, isDark && styles.previewTextDark]}>Review app first</Text>
+          <Text style={[styles.previewText, isDark && styles.previewTextDark]} numberOfLines={1} adjustsFontSizeToFit>Review app first</Text>
         </TouchableOpacity>
 
         <Text style={[styles.footer, isDark && styles.textMuted]}>

@@ -31,10 +31,10 @@ export default function LoginScreen() {
     <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
       <ScrollView contentContainerStyle={styles.content}>
         <TouchableOpacity style={[styles.themeButton, isDark && styles.themeButtonDark]} onPress={toggleTheme}>
-          <Text style={[styles.themeText, isDark && styles.textLight]}>{mode === 'dark' ? 'Light mode' : 'Dark mode'}</Text>
+          <Text style={[styles.themeText, isDark && styles.textLight]} numberOfLines={1} adjustsFontSizeToFit>{mode === 'dark' ? 'Light mode' : 'Dark mode'}</Text>
         </TouchableOpacity>
-        <Text style={[styles.title, isDark && styles.textLight]}>TaskTimer</Text>
-        <Text style={[styles.subtitle, isDark && styles.textMuted]}>Login with your web account.</Text>
+        <Text style={[styles.title, isDark && styles.textLight]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>TaskTimer</Text>
+        <Text style={[styles.subtitle, isDark && styles.textMuted]} numberOfLines={2}>Login with your web account.</Text>
 
         <View style={styles.form}>
           <Text style={[styles.label, isDark && styles.textMuted]}>Email</Text>
@@ -46,20 +46,20 @@ export default function LoginScreen() {
           {error ? <Text style={[styles.error, isDark && styles.errorDark]}>{error}</Text> : null}
 
           <TouchableOpacity style={[styles.button, isSubmitting && styles.buttonDisabled]} onPress={submit} disabled={isSubmitting}>
-            <Text style={styles.buttonText}>{isSubmitting ? 'Signing in...' : 'Sign in'}</Text>
+            <Text style={styles.buttonText} numberOfLines={1} adjustsFontSizeToFit>{isSubmitting ? 'Signing in...' : 'Sign in'}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.previewButton, isDark && styles.previewButtonDark]} onPress={() => router.replace('/(tabs)')}>
-            <Text style={[styles.previewText, isDark && styles.previewTextDark]}>Review app without login</Text>
+            <Text style={[styles.previewText, isDark && styles.previewTextDark]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>Review app without login</Text>
           </TouchableOpacity>
 
           <View style={styles.demoRow}>
             <TouchableOpacity onPress={() => { setEmail('admin@tasktimer.app'); setPassword('admin123'); }} style={[styles.demoButton, isDark && styles.demoButtonDark]}>
-              <Text style={[styles.demoTitle, isDark && styles.textLight]}>Admin</Text>
-              <Text style={[styles.demoText, isDark && styles.textMuted]}>admin@tasktimer.app</Text>
+              <Text style={[styles.demoTitle, isDark && styles.textLight]} numberOfLines={1}>Admin</Text>
+              <Text style={[styles.demoText, isDark && styles.textMuted]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>admin@tasktimer.app</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => { setEmail('demo@tasktimer.app'); setPassword('demo123'); }} style={[styles.demoButton, isDark && styles.demoButtonDark]}>
-              <Text style={[styles.demoTitle, isDark && styles.textLight]}>Demo</Text>
-              <Text style={[styles.demoText, isDark && styles.textMuted]}>demo@tasktimer.app</Text>
+              <Text style={[styles.demoTitle, isDark && styles.textLight]} numberOfLines={1}>Demo</Text>
+              <Text style={[styles.demoText, isDark && styles.textMuted]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>demo@tasktimer.app</Text>
             </TouchableOpacity>
           </View>
 
@@ -91,8 +91,8 @@ const styles = StyleSheet.create({
   previewButtonDark: { borderColor: '#155e75', backgroundColor: '#0f172a' },
   previewText: { color: '#0e7490', fontWeight: '800' },
   previewTextDark: { color: '#67e8f9' },
-  demoRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  demoButton: { flex: 1, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 12, backgroundColor: '#f9fafb' },
+  demoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
+  demoButton: { flexGrow: 1, flexBasis: 130, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 12, backgroundColor: '#f9fafb' },
   demoButtonDark: { borderColor: '#334155', backgroundColor: '#0f172a' },
   demoTitle: { fontWeight: '800', color: '#111827' },
   demoText: { marginTop: 4, fontSize: 11, color: '#6b7280' },
