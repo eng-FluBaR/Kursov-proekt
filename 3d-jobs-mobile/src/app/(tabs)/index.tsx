@@ -3,12 +3,14 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { useAuth } from '@/contexts/auth-context';
+import { useAppTheme } from '@/contexts/theme-context';
 import { apiRequest, formatDuration, Job, Project, TimeEntry } from '@/lib/api';
 import { previewJobs, previewProjects, previewTimeEntries } from '@/lib/preview-data';
 import { PreviewHint } from '@/components/preview-hint';
 
 export default function DashboardScreen() {
   const { token, user, logout } = useAuth();
+  const { isDark, mode, toggleTheme } = useAppTheme();
   const [projects, setProjects] = useState<Project[]>([]);
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -50,16 +52,21 @@ export default function DashboardScreen() {
   const totalMinutesToday = todayEntries.reduce((sum, entry) => sum + (entry.durationMinutes ?? 0), 0);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
       <ScrollView style={styles.scroll}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.title}>Dashboard</Text>
-            <Text style={styles.subtitle}>{user?.email}</Text>
+            <Text style={[styles.title, isDark && styles.textLight]}>Dashboard</Text>
+            <Text style={[styles.subtitle, isDark && styles.textMuted]}>{user?.email ?? 'Review mode'}</Text>
           </View>
-          <TouchableOpacity onPress={token ? logout : () => router.push('/login')} style={styles.logoutButton}>
-            <Text style={styles.logoutText}>{token ? 'Logout' : 'Login'}</Text>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity onPress={toggleTheme} style={[styles.logoutButton, isDark && styles.buttonDark]}>
+              <Text style={[styles.logoutText, isDark && styles.textLight]}>{mode === 'dark' ? 'Light' : 'Dark'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={token ? logout : () => router.push('/login')} style={[styles.logoutButton, isDark && styles.buttonDark]}>
+              <Text style={[styles.logoutText, isDark && styles.textLight]}>{token ? 'Logout' : 'Login'}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         {!token ? (
           <PreviewHint>
@@ -71,35 +78,35 @@ export default function DashboardScreen() {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, isDark && styles.cardDark]}>
             <Text style={styles.statLabel}>Today&apos;s Total</Text>
-            <Text style={styles.statValue}>{formatDuration(totalMinutesToday)}</Text>
+            <Text style={[styles.statValue, isDark && styles.textLight]}>{formatDuration(totalMinutesToday)}</Text>
           </View>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, isDark && styles.cardDark]}>
             <Text style={styles.statLabel}>Projects</Text>
-            <Text style={styles.statValue}>{projects.length}</Text>
+            <Text style={[styles.statValue, isDark && styles.textLight]}>{projects.length}</Text>
           </View>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, isDark && styles.cardDark]}>
             <Text style={styles.statLabel}>Jobs</Text>
-            <Text style={styles.statValue}>{jobs.length}</Text>
+            <Text style={[styles.statValue, isDark && styles.textLight]}>{jobs.length}</Text>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Entries</Text>
+          <Text style={[styles.sectionTitle, isDark && styles.textLight]}>Recent Entries</Text>
           {entries.length === 0 && !isLoading ? (
             <Text style={styles.emptyText}>No entries yet</Text>
           ) : (
             entries.slice(0, 8).map((entry) => (
-              <View key={entry.id} style={styles.entryItem}>
+              <View key={entry.id} style={[styles.entryItem, isDark && styles.cardDark]}>
                 <View style={[styles.colorDot, { backgroundColor: entry.projectColor }]} />
                 <View style={styles.entryContent}>
-                  <Text style={styles.entryTitle}>{entry.projectName}</Text>
-                  <Text style={styles.entrySubtitle}>
+                  <Text style={[styles.entryTitle, isDark && styles.textLight]}>{entry.projectName}</Text>
+                  <Text style={[styles.entrySubtitle, isDark && styles.textMuted]}>
                   {entry.jobTitle ?? entry.taskTypeName ?? 'Task'} - {new Date(entry.startedAt).toLocaleString()}
                   </Text>
                 </View>
-                <Text style={styles.entryDuration}>{formatDuration(entry.durationMinutes)}</Text>
+                <Text style={[styles.entryDuration, isDark && styles.textMuted]}>{formatDuration(entry.durationMinutes)}</Text>
               </View>
             ))
           )}
@@ -111,15 +118,19 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
+  containerDark: { backgroundColor: '#020617' },
   scroll: { padding: 16 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  headerActions: { flexDirection: 'row', gap: 8 },
   title: { fontSize: 28, fontWeight: 'bold' },
   subtitle: { marginTop: 4, color: '#666' },
   logoutButton: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  buttonDark: { borderColor: '#334155', backgroundColor: '#0f172a' },
   logoutText: { color: '#333', fontWeight: '700' },
   error: { color: '#be123c', backgroundColor: '#fff1f2', borderRadius: 8, padding: 12, marginBottom: 12 },
   statsGrid: { flexDirection: 'row', gap: 12, marginBottom: 20 },
   statCard: { flex: 1, backgroundColor: '#f0f9ff', padding: 16, borderRadius: 12, borderLeftWidth: 4, borderLeftColor: '#3B82F6' },
+  cardDark: { backgroundColor: '#0f172a', borderColor: '#334155' },
   statLabel: { fontSize: 12, color: '#666', marginBottom: 8 },
   statValue: { fontSize: 20, fontWeight: 'bold', color: '#333' },
   section: { marginBottom: 20 },
@@ -131,4 +142,6 @@ const styles = StyleSheet.create({
   entrySubtitle: { fontSize: 12, color: '#666' },
   entryDuration: { fontSize: 12, fontWeight: '600', color: '#666' },
   emptyText: { textAlign: 'center', color: '#999', paddingVertical: 20 },
+  textLight: { color: '#f8fafc' },
+  textMuted: { color: '#94a3b8' },
 });

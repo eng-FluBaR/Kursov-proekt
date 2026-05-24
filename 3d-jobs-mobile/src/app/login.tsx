@@ -3,9 +3,11 @@ import { useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { useAuth } from '@/contexts/auth-context';
+import { useAppTheme } from '@/contexts/theme-context';
 
 export default function LoginScreen() {
   const { login } = useAuth();
+  const { isDark, mode, toggleTheme } = useAppTheme();
   const [email, setEmail] = useState('admin@tasktimer.app');
   const [password, setPassword] = useState('admin123');
   const [error, setError] = useState('');
@@ -26,17 +28,20 @@ export default function LoginScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>TaskTimer</Text>
-        <Text style={styles.subtitle}>Login with your web account.</Text>
+        <TouchableOpacity style={[styles.themeButton, isDark && styles.themeButtonDark]} onPress={toggleTheme}>
+          <Text style={[styles.themeText, isDark && styles.textLight]}>{mode === 'dark' ? 'Light mode' : 'Dark mode'}</Text>
+        </TouchableOpacity>
+        <Text style={[styles.title, isDark && styles.textLight]}>TaskTimer</Text>
+        <Text style={[styles.subtitle, isDark && styles.textMuted]}>Login with your web account.</Text>
 
         <View style={styles.form}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput style={styles.input} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+          <Text style={[styles.label, isDark && styles.textMuted]}>Email</Text>
+          <TextInput style={[styles.input, isDark && styles.inputDark]} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
 
-          <Text style={styles.label}>Password</Text>
-          <TextInput style={styles.input} value={password} onChangeText={setPassword} secureTextEntry />
+          <Text style={[styles.label, isDark && styles.textMuted]}>Password</Text>
+          <TextInput style={[styles.input, isDark && styles.inputDark]} value={password} onChangeText={setPassword} secureTextEntry />
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -58,7 +63,7 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.footer}>
+          <Text style={[styles.footer, isDark && styles.textMuted]}>
             No account? <Link href="/register" style={styles.link}>Register</Link>
           </Text>
         </View>
@@ -69,12 +74,14 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
+  containerDark: { backgroundColor: '#020617' },
   content: { flexGrow: 1, justifyContent: 'center', padding: 20 },
   title: { fontSize: 36, fontWeight: '800', color: '#111827' },
   subtitle: { marginTop: 8, marginBottom: 28, color: '#6b7280', fontSize: 16 },
   form: { gap: 12 },
   label: { fontSize: 13, fontWeight: '700', color: '#374151' },
   input: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, fontSize: 15 },
+  inputDark: { backgroundColor: '#0f172a', borderColor: '#334155', color: '#f8fafc' },
   error: { borderWidth: 1, borderColor: '#fecdd3', borderRadius: 10, backgroundColor: '#fff1f2', color: '#be123c', padding: 12 },
   button: { marginTop: 8, borderRadius: 10, backgroundColor: '#2563eb', paddingVertical: 14, alignItems: 'center' },
   buttonDisabled: { opacity: 0.65 },
@@ -87,4 +94,9 @@ const styles = StyleSheet.create({
   demoText: { marginTop: 4, fontSize: 11, color: '#6b7280' },
   footer: { marginTop: 14, textAlign: 'center', color: '#6b7280' },
   link: { color: '#2563eb', fontWeight: '800' },
+  themeButton: { alignSelf: 'flex-end', borderWidth: 1, borderColor: '#d1d5db', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 18 },
+  themeButtonDark: { borderColor: '#334155', backgroundColor: '#0f172a' },
+  themeText: { color: '#111827', fontWeight: '800' },
+  textLight: { color: '#f8fafc' },
+  textMuted: { color: '#94a3b8' },
 });
