@@ -228,7 +228,7 @@ export default function JobsScreen() {
     }
   }
 
-  async function startTimer(job?: Job) {
+  async function startTimer(job?: Job, returnToTaskList = false) {
     const selectedTimerJob = job ?? timerJob;
     
     if (!token) {
@@ -264,6 +264,9 @@ export default function JobsScreen() {
       setTimerJobId(selectedTimerJob.id);
       setElapsed(0);
       setStatus(`Timer started for ${selectedTimerJob.title}.`);
+      if (returnToTaskList) {
+        setSelectedJob(null);
+      }
       requestAnimationFrame(() => {
         scrollRef.current?.scrollTo({ y: 0, animated: true });
       });
@@ -298,6 +301,9 @@ export default function JobsScreen() {
   function openJob(job: Job) {
     setSelectedJob(job);
     setNotes(job.description ?? '');
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+    });
   }
 
   function clearFilters() {
@@ -315,7 +321,48 @@ export default function JobsScreen() {
             Browse sample tasks by status, search by name or type, and open details. Login to create, edit, share and track real tasks.
           </PreviewHint>
         ) : null}
+        {isLoading ? <ActivityIndicator /> : null}
+        {status ? <Text style={[styles.status, isDark && styles.statusDark]}>{status}</Text> : null}
 
+        {selectedJob ? (
+          <View style={styles.detailCard}>
+            <TouchableOpacity style={styles.backButton} onPress={() => setSelectedJob(null)}>
+              <MaterialIcons name="arrow-back" size={18} color="#e2e8f0" />
+              <Text style={styles.closeText} numberOfLines={1} adjustsFontSizeToFit>Back to tasks</Text>
+            </TouchableOpacity>
+            <Text style={styles.kicker}>Task details</Text>
+            <Text style={styles.detailTitle}>{selectedJob.title}</Text>
+            <Text style={[styles.meta, styles.detailMeta]}>{selectedJob.projectName} - {selectedJob.taskTypeName ?? 'No type'}</Text>
+            {selectedJob.isShared ? <Text style={styles.shared}>Shared by {selectedJob.ownerEmail ?? 'another user'}</Text> : null}
+            <TextInput style={[styles.input, styles.textarea, isDark && styles.inputDark]} value={notes} onChangeText={setNotes} multiline editable={!selectedJob.isShared} />
+            <View style={styles.buttonRow}>
+              {selectedJob.status === 'active' ? (
+                <TouchableOpacity style={styles.primaryButton} onPress={() => startTimer(selectedJob, true)} disabled={isSaving}>
+                  <Text style={styles.primaryText} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75}>Start timer</Text>
+                </TouchableOpacity>
+              ) : null}
+              {!selectedJob.isShared ? (
+                <TouchableOpacity style={[styles.secondaryButton, isDark && styles.secondaryButtonDark]} onPress={() => updateSelectedJob()} disabled={isSaving}>
+                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]} numberOfLines={1} adjustsFontSizeToFit>Save</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            {!selectedJob.isShared ? (
+              <View style={styles.buttonRow}>
+                <TouchableOpacity style={[styles.secondaryButton, isDark && styles.secondaryButtonDark]} onPress={() => updateSelectedJob('active')} disabled={isSaving}>
+                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]} numberOfLines={1} adjustsFontSizeToFit>Active</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.secondaryButton, isDark && styles.secondaryButtonDark]} onPress={() => updateSelectedJob('paused')} disabled={isSaving}>
+                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]} numberOfLines={1} adjustsFontSizeToFit>Pause</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.secondaryButton, isDark && styles.secondaryButtonDark]} onPress={() => updateSelectedJob('completed')} disabled={isSaving}>
+                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]} numberOfLines={1} adjustsFontSizeToFit>Complete</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+          </View>
+        ) : (
+          <>
         <View style={[styles.timerCard, isDark && styles.cardDark]}>
           <View style={styles.timerHeader}>
             <View style={styles.timerTitleWrap}>
@@ -450,47 +497,6 @@ export default function JobsScreen() {
           </View>
         ) : null}
 
-        {isLoading ? <ActivityIndicator /> : null}
-        {status ? <Text style={[styles.status, isDark && styles.statusDark]}>{status}</Text> : null}
-
-        {selectedJob ? (
-          <View style={styles.detailCard}>
-            <Text style={styles.kicker}>Task details</Text>
-            <Text style={styles.detailTitle}>{selectedJob.title}</Text>
-            <Text style={[styles.meta, styles.detailMeta]}>{selectedJob.projectName} - {selectedJob.taskTypeName ?? 'No type'}</Text>
-            {selectedJob.isShared ? <Text style={styles.shared}>Shared by {selectedJob.ownerEmail ?? 'another user'}</Text> : null}
-            <TextInput style={[styles.input, styles.textarea, isDark && styles.inputDark]} value={notes} onChangeText={setNotes} multiline editable={!selectedJob.isShared} />
-            <View style={styles.buttonRow}>
-              {selectedJob.status === 'active' ? (
-                <TouchableOpacity style={styles.primaryButton} onPress={() => startTimer(selectedJob)} disabled={isSaving}>
-                  <Text style={styles.primaryText} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75}>Start timer</Text>
-                </TouchableOpacity>
-              ) : null}
-              {!selectedJob.isShared ? (
-                <TouchableOpacity style={[styles.secondaryButton, isDark && styles.secondaryButtonDark]} onPress={() => updateSelectedJob()} disabled={isSaving}>
-                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]} numberOfLines={1} adjustsFontSizeToFit>Save</Text>
-                </TouchableOpacity>
-              ) : null}
-            </View>
-            {!selectedJob.isShared ? (
-              <View style={styles.buttonRow}>
-                <TouchableOpacity style={[styles.secondaryButton, isDark && styles.secondaryButtonDark]} onPress={() => updateSelectedJob('active')} disabled={isSaving}>
-                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]} numberOfLines={1} adjustsFontSizeToFit>Active</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.secondaryButton, isDark && styles.secondaryButtonDark]} onPress={() => updateSelectedJob('paused')} disabled={isSaving}>
-                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]} numberOfLines={1} adjustsFontSizeToFit>Pause</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.secondaryButton, isDark && styles.secondaryButtonDark]} onPress={() => updateSelectedJob('completed')} disabled={isSaving}>
-                  <Text style={[styles.secondaryText, isDark && styles.secondaryTextDark]} numberOfLines={1} adjustsFontSizeToFit>Complete</Text>
-                </TouchableOpacity>
-              </View>
-            ) : null}
-            <TouchableOpacity style={styles.closeButton} onPress={() => setSelectedJob(null)}>
-              <Text style={styles.closeText} numberOfLines={1} adjustsFontSizeToFit>Close</Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
-
         {visibleJobs.length === 0 && !isLoading ? <Text style={[styles.emptyText, isDark && styles.textMuted]}>No jobs found</Text> : null}
 
         {visibleJobs.map((job) => (
@@ -505,6 +511,8 @@ export default function JobsScreen() {
             <Text style={[styles.meta, isDark && styles.textMuted]}>Created {formatDate(job.createdAt)}</Text>
           </TouchableOpacity>
         ))}
+          </>
+        )}
 
         <View style={styles.spacer} />
       </ScrollView>
@@ -578,6 +586,7 @@ const styles = StyleSheet.create({
   secondaryButtonDark: { borderColor: '#334155', backgroundColor: '#020617' },
   secondaryText: { color: '#111827', fontWeight: '700' },
   secondaryTextDark: { color: '#f8fafc' },
+  backButton: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 10, borderWidth: 1, borderColor: '#334155', paddingHorizontal: 12, paddingVertical: 10 },
   closeButton: { alignItems: 'center', borderRadius: 10, borderWidth: 1, borderColor: '#334155', paddingVertical: 12 },
   closeText: { color: '#e2e8f0', fontWeight: '700' },
   disabled: { opacity: 0.65 },
